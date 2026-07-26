@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from api_server import allowed_origins, app
+from api_server import allowed_origins, app, sanitize_json
 
 
 def test_query_api_returns_evidence_and_tables() -> None:
@@ -54,3 +54,17 @@ def test_allowed_origins_reads_comma_separated_values(monkeypatch) -> None:
         "https://gaaiyun.github.io",
         "http://localhost:4174",
     ]
+
+
+def test_sanitize_json_replaces_non_finite_numbers() -> None:
+    payload = {
+        "nan": float("nan"),
+        "nested": [float("inf"), {"value": float("-inf")}],
+        "valid": 1.5,
+    }
+
+    assert sanitize_json(payload) == {
+        "nan": None,
+        "nested": [None, {"value": None}],
+        "valid": 1.5,
+    }

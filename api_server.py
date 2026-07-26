@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
@@ -23,6 +25,17 @@ def allowed_origins() -> list[str]:
     configured = os.getenv("CHAINLENS_ALLOWED_ORIGINS", "")
     origins = [item.strip() for item in configured.split(",") if item.strip()]
     return origins or ["*"]
+
+
+def sanitize_json(value: Any) -> Any:
+    """Replace values rejected by strict JSON encoders with null."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: sanitize_json(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [sanitize_json(item) for item in value]
+    return value
 
 
 app = FastAPI(title="ChainLens API", version="0.1.0")
@@ -76,7 +89,7 @@ def query(payload: QueryRequest) -> JSONResponse:
         "report_markdown": result.report_markdown,
         "metadata": result.metadata,
     }
-    return JSONResponse(content=jsonable_encoder(body))
+    return JSONResponse(content=sanitize_json(jsonable_encoder(body)))
 
 
 if __name__ == "__main__":
