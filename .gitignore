@@ -1,0 +1,37 @@
+# 数据与产物
+data/raw/*
+!data/raw/.gitkeep
+data/warehouse/*
+!data/warehouse/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+*.duckdb
+*.duckdb.wal
+*.parquet
+*.xls
+*.xlsx
+
+# 密钥与本地配置
+.env
+.env.local
+.streamlit/secrets.toml
+config.json
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

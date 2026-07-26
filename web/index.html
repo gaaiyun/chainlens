@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#161a1d">
+  <meta name="description" content="ChainLens 链见：智能制造产业数据要素工作台">
+  <title>ChainLens / 链见</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail">
+      <div class="brand-mark" aria-label="ChainLens">
+        <span class="brand-glyph">C</span>
+        <span class="brand-name">链见</span>
+      </div>
+      <div class="rail-rule"></div>
+      <nav class="primary-nav" aria-label="分析场景">
+        <button class="nav-item is-active" data-view="financing"><span>01</span><strong>融资可见性</strong></button>
+        <button class="nav-item" data-view="qualification"><span>02</span><strong>资质续期</strong></button>
+        <button class="nav-item" data-view="network"><span>03</span><strong>产业网络</strong></button>
+        <button class="nav-item" data-view="region"><span>04</span><strong>区域体检</strong></button>
+      </nav>
+      <div class="rail-bottom">
+        <span class="status-dot"></span>
+        <span>数据引擎在线</span>
+        <small>DuckDB / deterministic</small>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="breadcrumb"><span>CHAINLENS</span><i>/</i><span>产业数据工作台</span></div>
+        <div class="topbar-meta"><span id="data-source">znjz / 2026.07.26</span><span class="avatar">G</span></div>
+      </header>
+
+      <section class="command-strip">
+        <div class="command-copy">
+          <p class="eyebrow">INDUSTRIAL INTELLIGENCE / 04 SCENARIOS</p>
+          <h1 id="page-title">把经营痕迹，变成可核验的增信线索。</h1>
+          <p id="page-description">从中标、资质、经营年限和产业关联中，识别公开融资数据里尚未被看见的企业。</p>
+        </div>
+        <form id="query-form" class="query-box">
+          <span class="query-prefix">问</span>
+          <input id="question" type="text" value="请找出有真实中标能力但没有融资记录的智能制造企业" aria-label="输入产业分析问题">
+          <button type="submit" class="run-button"><span>运行分析</span><b>↗</b></button>
+        </form>
+      </section>
+
+      <section class="metric-grid" id="metric-grid" aria-label="关键指标"></section>
+
+      <section class="content-grid">
+        <article class="panel finding-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">SIGNAL / READOUT</p><h2>信号读数</h2></div>
+            <span class="panel-index">A</span>
+          </div>
+          <div id="finding-list" class="finding-list"></div>
+          <div class="action-block">
+            <div class="mini-label">NEXT ACTION / 建议动作</div>
+            <ul id="action-list"></ul>
+          </div>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">DISTRIBUTION / VIEW</p><h2 id="chart-title">公开融资覆盖率</h2></div>
+            <span class="chart-unit" id="chart-unit">%</span>
+          </div>
+          <div id="chart" class="bar-chart" aria-label="数据图表"></div>
+          <div class="chart-foot"><span>Current sample</span><span id="chart-note">当前数据底座内相对值</span></div>
+        </article>
+
+        <aside class="panel evidence-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">TRACEABILITY / LEDGER</p><h2>证据链</h2></div>
+            <span class="shield">✓</span>
+          </div>
+          <p class="evidence-intro">每条读数都保留计算来源与解释边界。</p>
+          <div id="evidence-list" class="evidence-list"></div>
+          <div class="quality-stamp"><span>VERIFIED</span><small>结论来自确定性计算<br>不使用 LLM 猜测数字</small></div>
+        </aside>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">DATA / PREVIEW</p><h2>结果明细</h2></div>
+          <button class="ghost-button" id="download-snapshot" type="button">下载快照 <span>↓</span></button>
+        </div>
+        <div class="table-wrap"><table id="result-table"><thead></thead><tbody></tbody></table></div>
+        <div class="table-bottom"><span id="table-status">展示聚合结果</span><span>Rows are evidence, not conclusions.</span></div>
+      </section>
+
+      <footer class="footer">
+        <span>CHAINLENS / 链见</span>
+        <span>Public data × deterministic analysis × accountable action</span>
+        <a href="https://github.com/gaaiyun/chainlens" target="_blank" rel="noreferrer">GitHub ↗</a>
+      </footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="config.js"></script>
+  <script src="demo-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
