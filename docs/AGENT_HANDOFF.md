@@ -236,3 +236,41 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
   仓库层，不把 MySQL 连接逻辑散落到 API 或内核。
 - 原来的“必须上传 DuckDB”判断已作废。Railway 只需配置五个 DB Variables；
   本地 DuckDB 继续作为离线复现路径。
+
+### 2026-07-26 · Railway API 与 GitHub Pages 实时链路上线
+
+- Railway CLI 已授权并链接到
+  `perceptive-stillness / production / chainlens`，真实变量只保存在
+  Railway Variables，没有进入仓库或文档。
+- 公网地址：
+  - 前端：`https://gaaiyun.github.io/chainlens/`
+  - API：`https://chainlens-production.up.railway.app`
+  - 健康检查：`https://chainlens-production.up.railway.app/health`
+- 首次 Railway 失败的根因是未配置 DB Variables，服务回退查找不存在的
+  `/app/data/warehouse/chainlens.duckdb`。配置变量后部署成功。
+- 首次公网查询返回 500 的根因是 Starlette 严格 JSON 编码拒绝结果表中的
+  `NaN`。`0dcb72d` 在 API 输出边界把非有限浮点数转换为 `null`，没有修改
+  指标计算。
+- `2c2312f` 将 GitHub Pages 接到 Railway API，并按 API `ChartSpec` 和结果
+  表渲染实时柱图；`f1f69e3` 修复移动端区县长标签重叠。
+- 最终 Railway deployment：
+  `1d5d9257-aff6-479f-b4bf-a91e8c5853ee`，状态 `SUCCESS`，commit
+  `f1f69e3`。
+- 最终 Pages workflow：`30201175165`，状态 `success`。
+- 公网 API 四场景实测：
+  - financing：2 条结论、5 条证据、2 个图表规格；
+  - qualification：2 条结论、4 条证据、1 个图表规格；
+  - network：2 条结论、3 条证据、1 个图表规格，约 18 秒；
+  - region：2 条结论、3 条证据、1 个图表规格。
+- 公网 Playwright 验收通过：桌面融资查询和手机区域查询均进入 LIVE 状态，
+  CORS 正常，浏览器控制台无错误，图表、证据和结果明细均非空。
+- 验收截图：
+  `data/outputs/public_acceptance_20260726/desktop-live-final.png`、
+  `data/outputs/public_acceptance_20260726/mobile-live-final.png`。
+- 最后一次本地验证：
+  - `python -m pytest -q` -> `21 passed`
+  - `python scripts/check_security.py` -> `[OK] security scan passed`
+  - `scripts/test_frontend.py` -> `[OK] frontend smoke passed`
+- 运营风险：Railway 当前为试用额度；竞赛正式开放前检查额度。公网 API
+  当前是固定四类确定性分析、只读数据和受限 CORS，但还没有用户账号、持久化
+  限流和监控告警，若大规模开放需补 API 网关或服务端限流。

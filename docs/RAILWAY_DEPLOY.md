@@ -132,7 +132,12 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 - 线上数据源：Railway Variables 指向的只读 `znjz` MySQL
 - 离线数据底座：`data/warehouse/chainlens.duckdb`
 - Railway 配置：仓库根目录 `railway.toml`
-- Railway 公网域名：以控制台生成结果为准
+- Railway 项目：`perceptive-stillness / production / chainlens`
+- Railway 公网域名：`https://chainlens-production.up.railway.app`
+- GitHub Pages：`https://gaaiyun.github.io/chainlens/`
+
+当前部署已完成真实 MySQL 四场景验收。Railway 账户仍处于试用额度，竞赛
+正式展示前要检查剩余额度或升级套餐，避免服务因额度耗尽暂停。
 
 ## 上线验收
 

@@ -73,6 +73,10 @@ flowchart LR
 
 <https://gaaiyun.github.io/chainlens/>
 
+实时 API 已部署到：
+
+<https://chainlens-production.up.railway.app/>
+
 API 采用 FastAPI，可部署到 Railway。仓库根目录的 `railway.toml` 已固定启动
 命令和 `/health` 健康检查。部署时通过 Railway Variables 连接已有的只读
 `znjz` MySQL，服务启动后会缓存五个分析视图；不需要把被 Git 忽略的
