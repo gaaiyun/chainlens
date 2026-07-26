@@ -39,7 +39,8 @@ function renderChart(data) {
   $("#chart").innerHTML = data.chart.labels.map((label, index) => {
     const value = data.chart.values[index];
     const height = Math.max(5, Math.round((value / max) * 100));
-    return `<div class="bar-item"><span class="bar-value">${value}${data.chart.suffix}</span><div class="bar" style="height:${height}%"></div><span class="bar-label" title="${label}">${label}</span></div>`;
+    const fullLabel = data.chart.fullLabels?.[index] || label;
+    return `<div class="bar-item"><span class="bar-value">${value}${data.chart.suffix}</span><div class="bar" style="height:${height}%"></div><span class="bar-label" title="${fullLabel}">${label}</span></div>`;
   }).join("");
 }
 
@@ -61,10 +62,12 @@ function renderTable(data) {
 function renderApiChart(result) {
   const spec = result.charts?.[0];
   const rows = spec ? result.tables?.[spec.data_key] || [] : [];
+  const isMobile = window.innerWidth < 640;
+  const pointLimit = isMobile ? 5 : 12;
   const points = rows
     .map((row) => ({ label: row[spec.x], value: Number(row[spec.y]) }))
     .filter((point) => point.label !== null && point.label !== undefined && Number.isFinite(point.value))
-    .slice(0, 12);
+    .slice(0, pointLimit);
 
   if (!spec || !points.length) {
     $("#chart-title").textContent = "实时图表";
@@ -74,10 +77,18 @@ function renderApiChart(result) {
   }
 
   const suffix = String(spec.y).includes("%") ? "%" : "";
+  const labels = points.map((point) => {
+    const full = String(point.label);
+    if (!isMobile) return full;
+    const district = full.includes("市") ? full.slice(full.lastIndexOf("市") + 1) : full;
+    const compact = district || full;
+    return compact.length > 4 ? `${compact.slice(0, 3)}…` : compact;
+  });
   renderChart({
     chart: {
       label: spec.title,
-      labels: points.map((point) => String(point.label)),
+      labels,
+      fullLabels: points.map((point) => String(point.label)),
       values: points.map((point) => point.value),
       suffix,
     },

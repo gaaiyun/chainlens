@@ -86,9 +86,63 @@ def main() -> int:
         download.save_as(str(OUTPUT / "qualification-snapshot.json"))
 
         mobile = browser.new_page(viewport={"width": 390, "height": 844})
+        mobile.route(
+            "**/api/query",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "title": "智能制造区域产业健康分析",
+                        "findings": [
+                            {"text": "区域健康指数已计算。", "evidence_id": "E-REGION-1"}
+                        ],
+                        "actions": ["进入区域核验流程。"],
+                        "evidence": [
+                            {
+                                "evidence_id": "E-REGION-1",
+                                "kernel": "region.Health",
+                                "claim": "区域健康指数",
+                                "value": 6,
+                                "unit": "个",
+                            }
+                        ],
+                        "tables": {
+                            "district_health": [
+                                {"区县": "潮州市湘桥区", "产业健康指数": 93.8},
+                                {"区县": "广州市海珠区", "产业健康指数": 89.9},
+                                {"区县": "韶关市武江区", "产业健康指数": 88.5},
+                                {"区县": "广州市荔湾区", "产业健康指数": 88.4},
+                                {"区县": "茂名市电白区", "产业健康指数": 87.8},
+                                {"区县": "广州市天河区", "产业健康指数": 87.2},
+                            ]
+                        },
+                        "charts": [
+                            {
+                                "title": "区县产业健康指数",
+                                "data_key": "district_health",
+                                "x": "区县",
+                                "y": "产业健康指数",
+                            }
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+            ),
+        )
         mobile.goto(f"http://127.0.0.1:{PORT}", wait_until="networkidle")
         assert mobile.locator(".primary-nav").is_visible()
         assert mobile.locator("h1").is_visible()
+        mobile.fill("#question", "哪些区县产业健康指数较高")
+        mobile.locator("#query-form button[type=submit]").click()
+        mobile.wait_for_function(
+            "document.querySelector('#toast').textContent.includes('已接入实时分析引擎')"
+        )
+        assert mobile.locator("#chart .bar-item").count() == 5
+        assert all(
+            len(label) <= 4
+            for label in mobile.locator("#chart .bar-label").all_inner_texts()
+        )
         mobile.screenshot(path=str(OUTPUT / "mobile.png"), full_page=True)
         browser.close()
     print(f"[OK] frontend smoke passed: {OUTPUT}")
