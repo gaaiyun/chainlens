@@ -65,6 +65,18 @@ flowchart LR
 
 详细口径见 [docs/METHODOLOGY.md](docs/METHODOLOGY.md)，竞赛立意见 [docs/COMPETITION_BRIEF.md](docs/COMPETITION_BRIEF.md)，交接入口见 [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md)。
 
+## 公网部署
+
+当前静态前端已部署到：
+
+<https://gaaiyun.github.io/chainlens/>
+
+API 采用 FastAPI，可部署到 Railway。仓库根目录的 `railway.toml` 已固定启动
+命令和 `/health` 健康检查。部署前要先把被 Git 忽略的 DuckDB 数据底座放入
+Railway Volume 或受控对象存储；只部署代码不会自动带上真实实验数据。
+
+完整步骤见 [docs/RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md)。
+
 ## 数据和合规边界
 
 原始 Excel、DuckDB、Parquet 和报告产物默认被 `.gitignore` 排除。项目只使用当前数据集允许的分析视图，不把密钥、数据库密码、企业隐私字段或外部推断写入仓库。OCS 是公开数据线索分，不是征信分；任何授信、投资、处罚或政策认定都必须人工复核。

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from api_server import app
+from api_server import allowed_origins, app
 
 
 def test_query_api_returns_evidence_and_tables() -> None:
@@ -27,3 +27,21 @@ def test_query_api_rejects_empty_question() -> None:
     response = client.post("/api/query", json={"question": " "})
 
     assert response.status_code == 422
+
+
+def test_allowed_origins_defaults_to_wildcard(monkeypatch) -> None:
+    monkeypatch.delenv("CHAINLENS_ALLOWED_ORIGINS", raising=False)
+
+    assert allowed_origins() == ["*"]
+
+
+def test_allowed_origins_reads_comma_separated_values(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "CHAINLENS_ALLOWED_ORIGINS",
+        " https://gaaiyun.github.io, http://localhost:4174 ",
+    )
+
+    assert allowed_origins() == [
+        "https://gaaiyun.github.io",
+        "http://localhost:4174",
+    ]

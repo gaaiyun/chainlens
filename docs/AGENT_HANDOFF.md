@@ -214,3 +214,18 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 ```
 
 - 要完成 API 公网部署，需要补充一种明确的运行环境：宝塔服务器 SSH 用户名/端口/密钥，或已登录的 Render/Railway/Cloudflare 等平台。
+
+### 2026-07-26 · Railway 部署准备
+
+- 用户询问 Railway 是否适合部署。结论：适合承载 FastAPI API，GitHub Pages
+  继续承载静态前端；不需要在 Railway Developer/OAuth 页面创建 OAuth App。
+- 新增仓库根目录 `railway.toml`，固定 Nixpacks 构建、`uvicorn` 启动命令、
+  `/health` 健康检查和失败重启策略。
+- `api_server.py` 新增 `CHAINLENS_ALLOWED_ORIGINS` 环境变量解析，生产环境
+  可以只允许 `https://gaaiyun.github.io`，本地未配置时仍允许开发调试。
+- 新增 `docs/RAILWAY_DEPLOY.md`，记录控制台步骤、变量规则、数据底座进入
+  Railway 的方案、上线验收和常见误区。
+- 新增 API CORS 配置测试；尚未创建 Railway 项目或公网 API 域名。
+- 当前真正的部署阻塞仍是数据底座：`chainlens.duckdb` 被 `.gitignore`
+  排除，Railway 从 GitHub 构建时拿不到它。下一步必须先确定 Volume 一次性
+  构建、对象存储下载或 MySQL 适配器中的一种。

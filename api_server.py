@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,10 +17,18 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from chainlens.agents import ChainLensOrchestrator
 
+
+def allowed_origins() -> list[str]:
+    """Return explicit CORS origins, keeping local development convenient."""
+    configured = os.getenv("CHAINLENS_ALLOWED_ORIGINS", "")
+    origins = [item.strip() for item in configured.split(",") if item.strip()]
+    return origins or ["*"]
+
+
 app = FastAPI(title="ChainLens API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins(),
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
