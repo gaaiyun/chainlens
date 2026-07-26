@@ -58,6 +58,32 @@ function renderTable(data) {
   $("#table-status").textContent = `${data.table.rows.length} 行聚合预览`;
 }
 
+function renderApiChart(result) {
+  const spec = result.charts?.[0];
+  const rows = spec ? result.tables?.[spec.data_key] || [] : [];
+  const points = rows
+    .map((row) => ({ label: row[spec.x], value: Number(row[spec.y]) }))
+    .filter((point) => point.label !== null && point.label !== undefined && Number.isFinite(point.value))
+    .slice(0, 12);
+
+  if (!spec || !points.length) {
+    $("#chart-title").textContent = "实时图表";
+    $("#chart-unit").textContent = "";
+    $("#chart").innerHTML = `<div class="chart-empty">当前结果没有可绘制的数值序列，请查看明细表和证据链。</div>`;
+    return;
+  }
+
+  const suffix = String(spec.y).includes("%") ? "%" : "";
+  renderChart({
+    chart: {
+      label: spec.title,
+      labels: points.map((point) => String(point.label)),
+      values: points.map((point) => point.value),
+      suffix,
+    },
+  });
+}
+
 function renderDemo(view = state.view) {
   state.view = view;
   const data = demo.scenarios[view];
@@ -94,7 +120,8 @@ function renderApiResult(result) {
     <div class="metric"><div class="metric-value">${result.findings.length}</div><div class="metric-label">可核验结论</div><div class="metric-note">来自 API 返回</div></div>
     <div class="metric"><div class="metric-value">${result.evidence.length}</div><div class="metric-label">证据记录</div><div class="metric-note">Evidence Ledger</div></div>
     <div class="metric"><div class="metric-value">LIVE</div><div class="metric-label">数据状态</div><div class="metric-note">确定性计算引擎</div></div>`;
-  $("#chart").innerHTML = `<div class="chart-empty">实时结果已返回，详细图表随 API 图表规格渲染。</div>`;
+  renderApiChart(result);
+  $("#data-source").textContent = "znjz / Railway 实时确定性分析引擎";
   state.result = result;
 }
 
