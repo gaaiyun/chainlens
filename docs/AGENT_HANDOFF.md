@@ -197,4 +197,20 @@ streamlit run app\streamlit_app.py     # 演示前端
 - `python scripts/run_pipeline.py --output-dir G:\chainlens\data\outputs\acceptance_20260726` -> 4 个场景全部 `[ok]`
 - `scripts/test_frontend.py` -> `[OK] frontend smoke passed`，截图和下载快照在 `G:\chainlens\data\outputs\frontend_smoke`
 - 实际产物已保存到 `G:\chainlens\data\outputs\acceptance_20260726`，每个场景有 Markdown、HTML、PDF 和图表，另有 `summary.json`。
-- 当前仍未完成：ChainLens 首次 Git 提交、GitHub 建仓/推送、GitHub Pages/Cloudflare 公网部署、实时 API 公网部署、远程 MySQL 接入；本地离线主线和静态前端已可复现。
+- 当前仍未完成：实时 API 公网部署、Cloudflare/自定义域名配置、远程 MySQL 接入；本地离线主线和 GitHub Pages 静态前端已可复现。
+
+### 2026-07-26 · GitHub Pages 已上线
+
+- 已创建并推送 GitHub 仓库：`https://github.com/gaaiyun/chainlens`
+- 已通过 GitHub API 启用 Pages 的 workflow 构建模式。
+- workflow `Deploy static frontend` 已成功完成，公网前端：
+  - `https://gaaiyun.github.io/chainlens/`
+- 公网检查结果：HTTP `200`，返回 `text/html`，页面首屏可访问。
+- API 仍未公网部署。原因是当前机器只有 GitHub 授权，没有宝塔 SSH 凭据、Render/Railway/Cloudflare API 授权或其他可运行 Python/DuckDB 的公网主机授权。
+- API 代码入口仍是 `api_server.py`，本地启动方式：
+
+```powershell
+uvicorn api_server:app --host 0.0.0.0 --port 8000
+```
+
+- 要完成 API 公网部署，需要补充一种明确的运行环境：宝塔服务器 SSH 用户名/端口/密钥，或已登录的 Render/Railway/Cloudflare 等平台。
