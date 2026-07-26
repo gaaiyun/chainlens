@@ -50,7 +50,11 @@ class QueryRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "engine": "deterministic-kernels"}
+    return {
+        "status": "ok",
+        "engine": "deterministic-kernels",
+        "database": orchestrator.warehouse.backend,
+    }
 
 
 @app.post("/api/query")

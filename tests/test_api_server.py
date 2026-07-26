@@ -21,6 +21,15 @@ def test_query_api_returns_evidence_and_tables() -> None:
     assert "financing_gap" in body["tables"]
 
 
+def test_health_reports_active_database_backend() -> None:
+    client = TestClient(app)
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["database"] in {"duckdb", "mysql"}
+
+
 def test_query_api_rejects_empty_question() -> None:
     client = TestClient(app)
 

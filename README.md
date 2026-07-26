@@ -12,7 +12,9 @@ ChainLens 是一个面向智能制造产业的数据要素应用。它把工商�
 
 公开数据里，融资记录只覆盖少数企业，招投标和资质记录却能呈现企业的真实经营痕迹。ChainLens 把这些痕迹加工成可核验的线索，帮助园区、银行、担保机构和企业服务部门更早发现“有能力但缺少标签”的中小企业，也帮助企业减少资质漏续期造成的经营损失。
 
-当前本地数据底座包含约 1.76 万家企业、约 59 万条招投标记录。数据不进入 Git，评审或部署人员通过本地 Excel 重建 DuckDB。
+当前本地数据底座包含约 1.76 万家企业、约 59 万条招投标记录。数据不进入
+Git；本地可以通过 Excel 重建 DuckDB，线上 API 使用只读的 `znjz` MySQL，
+启动时物化五个分析视图到内存 DuckDB。
 
 ## 当前能力
 
@@ -72,8 +74,9 @@ flowchart LR
 <https://gaaiyun.github.io/chainlens/>
 
 API 采用 FastAPI，可部署到 Railway。仓库根目录的 `railway.toml` 已固定启动
-命令和 `/health` 健康检查。部署前要先把被 Git 忽略的 DuckDB 数据底座放入
-Railway Volume 或受控对象存储；只部署代码不会自动带上真实实验数据。
+命令和 `/health` 健康检查。部署时通过 Railway Variables 连接已有的只读
+`znjz` MySQL，服务启动后会缓存五个分析视图；不需要把被 Git 忽略的
+DuckDB 或 Excel 上传到仓库。
 
 完整步骤见 [docs/RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md)。
 

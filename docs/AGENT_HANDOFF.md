@@ -226,6 +226,13 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - 新增 `docs/RAILWAY_DEPLOY.md`，记录控制台步骤、变量规则、数据底座进入
   Railway 的方案、上线验收和常见误区。
 - 新增 API CORS 配置测试；尚未创建 Railway 项目或公网 API 域名。
-- 当前真正的部署阻塞仍是数据底座：`chainlens.duckdb` 被 `.gitignore`
-  排除，Railway 从 GitHub 构建时拿不到它。下一步必须先确定 Volume 一次性
-  构建、对象存储下载或 MySQL 适配器中的一种。
+- 远程数据方案已确定为已有 `znjz` MySQL：连接时用 DuckDB MySQL 扩展只读
+  附加，随后把 `v_enterprise`、`v_bidding`、`v_financing`、`v_equity`、
+  `v_qualification` 五个白名单视图物化到内存 DuckDB，内核只查询缓存。
+- 实连验证结果：MySQL 端口可达；五个视图分别返回 `17,576`、`576,690`、
+  `267`、`6,757`、`14,486` 行；完整 financing、qualification、network、
+  region 四场景均通过，启动缓存约 6.5 秒。
+- 新增 `src/chainlens/warehouse/mysql.py`，远程数据适配和视图契约集中在
+  仓库层，不把 MySQL 连接逻辑散落到 API 或内核。
+- 原来的“必须上传 DuckDB”判断已作废。Railway 只需配置五个 DB Variables；
+  本地 DuckDB 继续作为离线复现路径。

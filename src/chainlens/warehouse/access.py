@@ -16,6 +16,8 @@ from typing import Any
 import duckdb
 import pandas as pd
 
+from .mysql import MySQLSettings, configure_mysql_source, materialize_analysis_views
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DB = REPO_ROOT / "data" / "warehouse" / "chainlens.duckdb"
 
@@ -100,15 +102,25 @@ class Warehouse:
     """线程安全的只读仓库句柄。"""
 
     def __init__(self, db_path: str | Path | None = None, default_limit: int = 5000) -> None:
-        self.db_path = Path(db_path or DEFAULT_DB)
-        if not self.db_path.exists():
-            raise FileNotFoundError(
-                f"数据底座不存在: {self.db_path}\n请先运行: python scripts/build_warehouse.py"
-            )
         self.default_limit = default_limit
-        self._con = duckdb.connect(str(self.db_path), read_only=True)
         self._lock = threading.Lock()
         self._log: list[dict[str, Any]] = []
+        mysql = MySQLSettings.from_environment() if db_path is None else None
+        if mysql is not None:
+            self.db_path: Path | None = None
+            self.backend = "mysql"
+            self._con = duckdb.connect()
+            configure_mysql_source(self._con, mysql)
+            materialize_analysis_views(self._con)
+        else:
+            self.db_path = Path(db_path or DEFAULT_DB)
+            if not self.db_path.exists():
+                raise FileNotFoundError(
+                    f"数据底座不存在: {self.db_path}\n"
+                    "请先运行: python -m chainlens.warehouse.etl"
+                )
+            self.backend = "duckdb"
+            self._con = duckdb.connect(str(self.db_path), read_only=True)
 
     # -- 查询 ---------------------------------------------------------------
 
