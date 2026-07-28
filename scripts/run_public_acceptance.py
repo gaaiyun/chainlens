@@ -39,7 +39,7 @@ FREEFORM_QUESTIONS = (
     (
         "14_founding_bidding_join",
         "统计各成立年份的企业数量，以及其中有招投标记录的企业数量",
-        ("year", "enterprise_count", "bidding_enterprise_count"),
+        ("enterprise_count", "bidding_enterprise_count", ("year", "start_year")),
         True,
         None,
         ("v_enterprise", "v_bidding", "bidding_enterprise_count"),
@@ -47,7 +47,7 @@ FREEFORM_QUESTIONS = (
     (
         "15_financing_without_bidding",
         "查询2020年以来有融资记录但没有招投标记录的企业，显示企业名称和最近融资年份",
-        ("name", "latest_finance_year"),
+        ("name", ("latest_finance_year", "latest_financing_year")),
         False,
         None,
         ("v_financing", "v_bidding", "not exists"),
@@ -74,7 +74,7 @@ def request_json(api_url: str, question: str, timeout: float) -> dict:
 
 def verify_response(
     payload: dict,
-    expected_columns: tuple[str, ...],
+    expected_columns: tuple[object, ...],
     expect_chart: bool,
     *,
     expect_llm: bool,
@@ -88,7 +88,11 @@ def verify_response(
     rows = payload.get("tables", {}).get("query_result")
     if not isinstance(rows, list) or not rows:
         raise AssertionError("公网真实查询未返回记录")
-    missing = [column for column in expected_columns if column not in rows[0]]
+    missing = []
+    for column in expected_columns:
+        alternatives = column if isinstance(column, tuple) else (column,)
+        if not any(option in rows[0] for option in alternatives):
+            missing.append(" / ".join(alternatives))
     if missing:
         raise AssertionError(f"公网结果缺少字段: {', '.join(missing)}")
     if not payload.get("findings") or not payload.get("evidence"):

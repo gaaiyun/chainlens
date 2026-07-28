@@ -397,3 +397,24 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
   可点击复合问题示例；固定融资、资质、网络、区域场景仍保留。
 - 本节之后需要继续追加全量测试、公网复合问题最终回归、GitHub Pages 与 Railway
   部署结果，不另起交接文件。
+
+### 2026-07-29 · 自由问数最终公网交付
+
+- 后端、前端和文档 commits：
+  - `968ddaf fix(agent): 修复复合问数路由与结果上限`
+  - `e31cc9c feat(web): 增加自由问数默认工作台`
+  - `881df3b docs(ask): 完善自由问数说明与验收`
+- Railway deployment `3fcb24ed-2831-448e-b286-2060a381c6ad` 为 `SUCCESS`，
+  commit `881df3b`；五个视图物化完成后 `/ready` 返回 200。
+- GitHub Pages workflow `30381939123` 为 `success`，commit `881df3b`。
+- 最终公网 API 验收 `15/15`：十个模板、一个普通长尾和四个复合自由问数均通过。
+  复合问题覆盖多指标平均值、显式 Top 20、成立年份与招投标跨表统计、融资但无
+  招投标的 `NOT EXISTS`。产物：
+  `data/outputs/public_freeform_acceptance_20260729_final`。
+- 模型可能使用 `year/start_year`、`latest_finance_year/latest_financing_year` 等
+  等价别名；验收器检查语义列组和 SQL 必备片段，不把正确 SQL 误判为失败。
+- 公网自由问数页面桌面和 390px 手机 Playwright 通过：默认标题、`00 自由问数`、
+  三个示例按钮、真实 API、CORS、SQL trace、图表、表格和 Markdown 下载均正常，
+  浏览器控制台无错误。产物：`data/outputs/public_freeform_frontend_20260729`。
+- 本轮最终本地质量门：`44 passed in 19.13s`；全仓 Ruff、安全扫描、编译、
+  diff check 和本地 Playwright 均通过。
