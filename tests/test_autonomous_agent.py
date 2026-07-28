@@ -75,6 +75,16 @@ def test_autonomous_sql_rejects_wildcard_and_caps_limit() -> None:
     assert report["modifications"] == ["LIMIT 截断为 500"]
 
 
+def test_autonomous_sql_enforces_explicit_top_n_limit() -> None:
+    safe_sql, report = enforce_autonomous_sql(
+        "SELECT name FROM v_enterprise ORDER BY name",
+        requested_limit=20,
+    )
+
+    assert safe_sql.endswith("LIMIT 20")
+    assert report["modifications"] == ["按用户要求添加 LIMIT 20"]
+
+
 def test_llm_settings_read_volcengine_mapping() -> None:
     settings = LLMSettings.from_mapping(
         {
@@ -127,6 +137,17 @@ def test_common_question_planner_covers_standard_questions() -> None:
     )
 
     assert all(plan_common_question(question) is not None for question in questions)
+
+
+def test_common_question_planner_does_not_swallow_cross_view_question() -> None:
+    questions = (
+        "统计各成立年份的企业数量，以及其中有招投标记录的企业数量",
+        "统计各行业企业数量和有融资记录的企业数量",
+        "统计各地区的企业数量和招投标记录数",
+        "比较经营状态与融资轮次分布",
+    )
+
+    assert all(plan_common_question(question) is None for question in questions)
 
 
 def test_all_standard_questions_execute_without_llm() -> None:

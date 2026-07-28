@@ -31,6 +31,7 @@ def test_router_sends_general_data_questions_to_autonomous_analysis() -> None:
     assert router("按成立年份统计企业数量趋势") == "autonomous"
     assert router("按注册资本区间统计企业数量") == "autonomous"
     assert router("统计各融资轮次的企业数量") == "autonomous"
+    assert router("查询2020年以来有融资记录但没有招投标记录的企业") == "autonomous"
 
 
 def test_standard_autonomous_question_does_not_require_llm_key(monkeypatch) -> None:

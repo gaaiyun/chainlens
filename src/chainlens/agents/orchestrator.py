@@ -55,7 +55,16 @@ class ChainLensOrchestrator:
             raise ValueError("问题不能为空")
         if (
             any(keyword in text for keyword in ("融资盲区", "授信", "隐形冠军", "OCS", "数据黑户"))
-            or ("融资" in text and any(keyword in text for keyword in ("没有", "无融资", "看不见")))
+            or any(
+                phrase in text
+                for phrase in (
+                    "没有融资",
+                    "没有任何融资",
+                    "无融资",
+                    "融资记录为空",
+                    "融资数据里看不见",
+                )
+            )
         ):
             return "financing"
         if any(keyword in text for keyword in ("续期", "到期", "过期", "资质悬崖")):
@@ -142,7 +151,6 @@ class ChainLensOrchestrator:
     def _run_qualification(self) -> tuple[dict[str, pd.DataFrame], list[Finding], list[str], list[ChartSpec], list[Evidence]]:
         result, evidence = self._qualification()
         overview = result["overview"]
-        lapsed = result["lapsed_firms"]
         upcoming = result["upcoming"]
         attention_count = int(
             overview.loc[overview["类别"] == "已过期（需关注）", "数量"].iloc[0]

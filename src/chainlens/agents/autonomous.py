@@ -53,6 +53,7 @@ class AutonomousState(TypedDict, total=False):
 
 _FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.IGNORECASE | re.DOTALL)
 _LIMIT = re.compile(r"\bLIMIT\s+(\d+)\s*$", re.IGNORECASE)
+_REQUESTED_LIMIT = re.compile(r"(?:top|前)\s*(\d+)", re.IGNORECASE)
 _COLUMN_LABELS = {
     "status": "经营状态",
     "enterprise_count": "企业数量",
@@ -99,7 +100,16 @@ def parse_sql_plan(text: str) -> SQLPlan:
     return SQLPlan(title=title, sql=sql, chart=normalized_chart)
 
 
-def enforce_autonomous_sql(sql: str, max_limit: int = 500) -> tuple[str, dict[str, Any]]:
+def _requested_result_limit(question: str) -> int | None:
+    match = _REQUESTED_LIMIT.search(question or "")
+    return int(match.group(1)) if match else None
+
+
+def enforce_autonomous_sql(
+    sql: str,
+    max_limit: int = 500,
+    requested_limit: int | None = None,
+) -> tuple[str, dict[str, Any]]:
     if re.search(
         r"\bSELECT\s+(?:DISTINCT\s+)?(?:[A-Za-z_][\w$]*\.)?\*",
         sql,
@@ -112,7 +122,20 @@ def enforce_autonomous_sql(sql: str, max_limit: int = 500) -> tuple[str, dict[st
         raise UnsafeQueryError(str(exc)) from exc
     modifications: list[str] = []
     match = _LIMIT.search(safe)
-    if match is None:
+    if requested_limit is not None:
+        effective_limit = min(max(1, requested_limit), max_limit)
+        if match is None:
+            safe = f"{safe}\nLIMIT {effective_limit}"
+            if requested_limit > max_limit:
+                modifications.append(
+                    f"用户要求 LIMIT {requested_limit}，安全上限截断为 {max_limit}"
+                )
+            else:
+                modifications.append(f"按用户要求添加 LIMIT {effective_limit}")
+        elif int(match.group(1)) != effective_limit:
+            safe = _LIMIT.sub(f"LIMIT {effective_limit}", safe)
+            modifications.append(f"按用户要求设置 LIMIT {effective_limit}")
+    elif match is None:
         safe = f"{safe}\nLIMIT {max_limit}"
         modifications.append(f"自动添加 LIMIT {max_limit}")
     elif int(match.group(1)) > max_limit:
@@ -255,7 +278,11 @@ class AutonomousAnalysisAgent:
         if plan is None:
             return {"last_error": state.get("last_error") or "缺少 SQL 计划"}
         try:
-            safe_sql, safety = enforce_autonomous_sql(plan.sql, self.max_limit)
+            safe_sql, safety = enforce_autonomous_sql(
+                plan.sql,
+                self.max_limit,
+                requested_limit=_requested_result_limit(state["question"]),
+            )
             trace.append(AgentTrace("SQLSafetyAgent", "passed", "SELECT/白名单/LIMIT 校验通过"))
             return {
                 "safe_sql": safe_sql,
