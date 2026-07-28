@@ -23,6 +23,7 @@ Git；本地可以通过 Excel 重建 DuckDB，线上 API 使用只读的 `znjz`
 - 产业网络：从同一招投标公告重建供需、协作、竞争关系
 - 区域体检：区县产业健康指数、行业空转预警、成立和招投标趋势
 - 自主分析：自然语言问题生成受控只读 SQL，执行后自动形成结论、图表和报告
+- 自由问数：支持聚合、排序、跨视图 JOIN、反向筛选和多指标问题，不要求先选固定场景
 - 双路径规划：十类常见问题使用已审查 SQL 模板，长尾问题才调用火山方舟，失败时可切换 DeepSeek
 - SQL 安全门：仅允许五个脱敏视图、单条 `SELECT/WITH`、显式字段和最多 500 行
 - 可审计交付：证据账本、Markdown、HTML、PDF、PNG 图表
@@ -47,6 +48,33 @@ python scripts\run_autonomous_acceptance.py
 
 它会验证经营状态、行业 Top、融资轮次、招投标年度、资质年份、地区分布、成立趋势、对外投资、注册资本区间和企业详情，并保存每题的原始 SQL、安全 SQL、结果、结论、图表、证据、trace、Markdown、HTML 和 PDF。
 
+## 自由问数
+
+默认首页就是自由问数工作台。可以直接输入自然语言，也可以点击输入框下方的
+复合问题示例。以下问题已经用真实 `znjz` MySQL + 火山方舟跑通：
+
+```text
+统计不同经济类型企业的平均注册资本和企业数量，按企业数量降序
+找出成立超过20年且有融资记录的企业，显示企业名称、成立日期和融资次数，按融资次数排序前20名
+统计各成立年份的企业数量，以及其中有招投标记录的企业数量
+查询2020年以来有融资记录但没有招投标记录的企业，显示企业名称和最近融资年份
+```
+
+自由问数的工作方式是：
+
+1. 规则路由先判断是否应进入融资、资质、产业网络或区域专家内核。
+2. 其他合规问题进入 LangGraph，自主读取五个视图的 Schema，由模型只规划 SQL。
+3. SQL 必须经过只读、单语句、视图白名单、显式字段和 LIMIT 校验。
+4. DuckDB 执行安全 SQL 后，系统从真实结果生成结论、图表、证据和报告。
+
+因此它是“限定数据域内的自由问数”，不是任意 SQL 执行器。当前边界是：
+
+- 只能查询 `v_enterprise`、`v_bidding`、`v_financing`、`v_equity`、`v_qualification`；
+- 一次问题生成一条只读 SQL，不支持跨轮次记忆式对话；
+- 不能写入数据库、读取密钥、访问白名单外表或调用文件系统；
+- 每次最多执行并返回 500 行，页面默认展示前 12 行；
+- 问题超出当前 Schema、模型未配置或 SQL 修复失败时，明确返回失败，不编造答案。
+
 启动交互页面：
 
 ```powershell
@@ -58,7 +86,7 @@ streamlit run app\streamlit_app.py
 ```powershell
 python -m pytest -q
 python scripts\check_security.py
-python scripts\run_public_acceptance.py --include-long-tail
+python scripts\run_public_acceptance.py --include-long-tail --include-freeform
 python scripts\test_public_frontend.py
 ```
 

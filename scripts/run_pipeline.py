@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from chainlens.agents import ChainLensOrchestrator
+from chainlens.agents import ChainLensOrchestrator  # noqa: E402
 
 QUESTIONS = (
     ("01_financing", "请找出有真实中标能力但没有融资记录的智能制造企业"),

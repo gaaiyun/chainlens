@@ -19,6 +19,40 @@ LONG_TAIL = (
     ("econ_kind", "enterprise_count"),
     True,
 )
+FREEFORM_QUESTIONS = (
+    (
+        "12_multi_metric",
+        "统计不同经济类型企业的平均注册资本和企业数量，按企业数量降序",
+        ("econ_kind", "enterprise_count", "avg_regist_capi_wan"),
+        True,
+        None,
+        ("avg(regist_capi_wan)",),
+    ),
+    (
+        "13_top_n_join",
+        "找出成立超过20年且有融资记录的企业，显示企业名称、成立日期和融资次数，按融资次数排序前20名",
+        ("name", "start_date", "financing_count"),
+        False,
+        20,
+        ("v_enterprise", "v_financing", "limit 20"),
+    ),
+    (
+        "14_founding_bidding_join",
+        "统计各成立年份的企业数量，以及其中有招投标记录的企业数量",
+        ("year", "enterprise_count", "bidding_enterprise_count"),
+        True,
+        None,
+        ("v_enterprise", "v_bidding", "bidding_enterprise_count"),
+    ),
+    (
+        "15_financing_without_bidding",
+        "查询2020年以来有融资记录但没有招投标记录的企业，显示企业名称和最近融资年份",
+        ("name", "latest_finance_year"),
+        False,
+        None,
+        ("v_financing", "v_bidding", "not exists"),
+    ),
+)
 
 
 def request_json(api_url: str, question: str, timeout: float) -> dict:
@@ -44,6 +78,8 @@ def verify_response(
     expect_chart: bool,
     *,
     expect_llm: bool,
+    max_rows: int | None = None,
+    sql_fragments: tuple[str, ...] = (),
 ) -> int:
     if payload.get("intent") != "autonomous":
         raise AssertionError(f"预期 autonomous，实际为 {payload.get('intent')}")
@@ -61,6 +97,12 @@ def verify_response(
         raise AssertionError("公网响应缺少报告或执行 trace")
     if expect_chart and not payload.get("charts"):
         raise AssertionError("公网聚合问题未返回图表规格")
+    if max_rows is not None and len(rows) > max_rows:
+        raise AssertionError(f"结果超过用户要求上限: {len(rows)} > {max_rows}")
+    safe_sql = str(payload["safe_sql"]).lower()
+    missing_fragments = [fragment for fragment in sql_fragments if fragment.lower() not in safe_sql]
+    if missing_fragments:
+        raise AssertionError(f"safe_sql 缺少语义片段: {', '.join(missing_fragments)}")
     llm_used = payload.get("metadata", {}).get("llm_used")
     if llm_used is not expect_llm:
         raise AssertionError(f"llm_used 预期 {expect_llm}，实际 {llm_used}")
@@ -75,17 +117,20 @@ def main() -> int:
         default=str(Path("data/outputs") / f"public_autonomous_acceptance_{date.today():%Y%m%d}"),
     )
     parser.add_argument("--include-long-tail", action="store_true")
+    parser.add_argument("--include-freeform", action="store_true")
     parser.add_argument("--timeout", type=float, default=150.0)
     args = parser.parse_args()
     root = Path(args.output_dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
 
-    cases = list(QUESTIONS)
+    cases = [(*case, None, ()) for case in QUESTIONS]
     if args.include_long_tail:
-        cases.append(LONG_TAIL)
+        cases.append((*LONG_TAIL, None, ()))
+    if args.include_freeform:
+        cases.extend(FREEFORM_QUESTIONS)
     summary: list[dict[str, object]] = []
 
-    for index, (slug, question, expected_columns, expect_chart) in enumerate(cases):
+    for index, (slug, question, expected_columns, expect_chart, max_rows, sql_fragments) in enumerate(cases):
         started = time.perf_counter()
         payload = request_json(args.api_url, question, args.timeout)
         expect_llm = index >= len(QUESTIONS)
@@ -94,6 +139,8 @@ def main() -> int:
             expected_columns,
             expect_chart,
             expect_llm=expect_llm,
+            max_rows=max_rows,
+            sql_fragments=sql_fragments,
         )
         elapsed = round(time.perf_counter() - started, 2)
         target = root / slug

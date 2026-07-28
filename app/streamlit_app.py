@@ -11,7 +11,7 @@ import streamlit as st
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from chainlens.agents import ChainLensOrchestrator
+from chainlens.agents import ChainLensOrchestrator  # noqa: E402
 
 
 st.set_page_config(page_title="ChainLens 链见", page_icon="C", layout="wide")

@@ -8,7 +8,6 @@ from __future__ import annotations
 import html
 import re
 from pathlib import Path
-from typing import Iterable
 
 import matplotlib
 
@@ -16,7 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from .contracts import AnalysisResult, ChartSpec
+from .contracts import AnalysisResult
 
 
 def _safe_filename(value: str) -> str:
