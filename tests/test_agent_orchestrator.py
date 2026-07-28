@@ -24,6 +24,29 @@ def test_router_distinguishes_the_four_decision_scenarios() -> None:
     assert router("比较不同区县的产业健康和行业分布") == "region"
 
 
+def test_router_sends_general_data_questions_to_autonomous_analysis() -> None:
+    router = ChainLensOrchestrator.classify
+
+    assert router("统计经营状态分布") == "autonomous"
+    assert router("按成立年份统计企业数量趋势") == "autonomous"
+    assert router("按注册资本区间统计企业数量") == "autonomous"
+    assert router("统计各融资轮次的企业数量") == "autonomous"
+
+
+def test_standard_autonomous_question_does_not_require_llm_key(monkeypatch) -> None:
+    monkeypatch.delenv("VOLCENGINE_ARK_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    runtime = ChainLensOrchestrator(Warehouse())
+    try:
+        result = runtime.run("统计经营状态分布")
+    finally:
+        runtime.close()
+
+    assert result.intent == "autonomous"
+    assert result.metadata["planner"] == "deterministic_template"
+    assert result.metadata["llm_used"] is False
+
+
 def test_financing_run_produces_trace_evidence_charts_and_artifacts(
     orchestrator: ChainLensOrchestrator,
     tmp_path: Path,

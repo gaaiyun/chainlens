@@ -19,7 +19,9 @@ from ..kernels.graph import build_industry_network
 from ..kernels.qualification import analyze_qualification_cliff
 from ..kernels.region import analyze_regions
 from ..warehouse.access import Warehouse
+from .autonomous import AutonomousAnalysisAgent
 from .contracts import AgentTrace, AnalysisResult, ChartSpec, Finding
+from .llm import LazyProvider, build_llm
 from .reporting import write_artifacts
 
 
@@ -33,10 +35,17 @@ class _KernelCache:
 class ChainLensOrchestrator:
     """把中文问题路由到确定性内核，并产出可审计报告。"""
 
-    def __init__(self, warehouse: Warehouse | None = None) -> None:
+    def __init__(
+        self,
+        warehouse: Warehouse | None = None,
+        *,
+        autonomous_llm: object | None = None,
+    ) -> None:
         self.warehouse = warehouse or Warehouse()
         self._owns_warehouse = warehouse is None
         self._cache = _KernelCache()
+        self._autonomous_llm = autonomous_llm
+        self._autonomous_runtime: AutonomousAnalysisAgent | None = None
 
     @staticmethod
     def classify(question: str) -> str:
@@ -44,16 +53,27 @@ class ChainLensOrchestrator:
         text = (question or "").strip()
         if not text:
             raise ValueError("问题不能为空")
-        rules = (
-            ("financing", ("融资", "授信", "贷款", "隐形冠军", "数据黑户", "资本")),
-            ("qualification", ("资质", "认证", "荣誉", "到期", "过期", "续期", "证书")),
-            ("network", ("产业链", "网络", "协作", "供应链", "关键节点", "合作")),
-            ("region", ("区域", "地区", "区县", "城市", "行业分布", "产业健康")),
-        )
-        for intent, keywords in rules:
-            if any(keyword in text for keyword in keywords):
-                return intent
-        return "overview"
+        if (
+            any(keyword in text for keyword in ("融资盲区", "授信", "隐形冠军", "OCS", "数据黑户"))
+            or ("融资" in text and any(keyword in text for keyword in ("没有", "无融资", "看不见")))
+        ):
+            return "financing"
+        if any(keyword in text for keyword in ("续期", "到期", "过期", "资质悬崖")):
+            return "qualification"
+        if any(keyword in text for keyword in ("产业协作网络", "关键节点", "共现", "供应链关系")):
+            return "network"
+        if any(keyword in text for keyword in ("产业健康", "行业空转", "区县体检")):
+            return "region"
+        return "autonomous"
+
+    def _autonomous_agent(self) -> AutonomousAnalysisAgent:
+        if self._autonomous_runtime is None:
+            llm = self._autonomous_llm or LazyProvider(build_llm)
+            self._autonomous_runtime = AutonomousAnalysisAgent(
+                warehouse=self.warehouse,
+                llm=llm,
+            )
+        return self._autonomous_runtime
 
     @staticmethod
     def quality_gate(evidence: EvidenceLedger | Iterable[Evidence]) -> None:
@@ -241,12 +261,24 @@ class ChainLensOrchestrator:
         try:
             intent = self.classify(question)
             trace.append(AgentTrace("IntentAgent", "passed", f"路由到 {intent}"))
+            if intent == "autonomous":
+                result = self._autonomous_agent().run(question)
+                result.trace.insert(0, trace[0])
+                if output_dir is not None:
+                    result.artifacts = write_artifacts(result, output_dir)
+                    result.trace.append(
+                        AgentTrace(
+                            "ArtifactAgent",
+                            "passed",
+                            f"写入 {len(result.artifacts)} 个产物",
+                        )
+                    )
+                return result
             runners = {
                 "financing": self._run_financing,
                 "qualification": self._run_qualification,
                 "network": self._run_network,
                 "region": self._run_region,
-                "overview": self._run_overview,
             }
             tables, findings, actions, charts, evidence = runners[intent]()
             trace.append(AgentTrace("KernelAgent", "passed", f"生成 {len(tables)} 个结果表"))
@@ -259,7 +291,6 @@ class ChainLensOrchestrator:
                 "qualification": "智能制造企业资质续期风险分析",
                 "network": "智能制造产业协作网络分析",
                 "region": "智能制造区域产业健康分析",
-                "overview": "智能制造产业数据要素决策简报",
             }[intent]
             result = AnalysisResult(
                 question=question,
