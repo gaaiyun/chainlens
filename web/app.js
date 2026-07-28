@@ -5,6 +5,15 @@ const state = { view: "financing", result: null };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
@@ -25,11 +34,11 @@ function renderMetrics(data) {
 function renderFindings(data) {
   $("#finding-list").innerHTML = data.findings.map((item) => `
     <div class="finding">
-      <div class="finding-title">${item.title}</div>
-      <div class="finding-body">${item.body}</div>
-      <span class="finding-evidence">${item.evidence}</span>
+      <div class="finding-title">${escapeHtml(item.title)}</div>
+      <div class="finding-body">${escapeHtml(item.body)}</div>
+      <span class="finding-evidence">${escapeHtml(item.evidence)}</span>
     </div>`).join("");
-  $("#action-list").innerHTML = data.actions.map((item) => `<li>${item}</li>`).join("");
+  $("#action-list").innerHTML = data.actions.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 }
 
 function renderChart(data) {
@@ -40,22 +49,22 @@ function renderChart(data) {
     const value = data.chart.values[index];
     const height = Math.max(5, Math.round((value / max) * 100));
     const fullLabel = data.chart.fullLabels?.[index] || label;
-    return `<div class="bar-item"><span class="bar-value">${value}${data.chart.suffix}</span><div class="bar" style="height:${height}%"></div><span class="bar-label" title="${fullLabel}">${label}</span></div>`;
+    return `<div class="bar-item"><span class="bar-value">${escapeHtml(value)}${escapeHtml(data.chart.suffix)}</span><div class="bar" style="height:${height}%"></div><span class="bar-label" title="${escapeHtml(fullLabel)}">${escapeHtml(label)}</span></div>`;
   }).join("");
 }
 
 function renderEvidence(data) {
   $("#evidence-list").innerHTML = data.evidence.map(([id, kernel, claim, value]) => `
     <div class="evidence-item">
-      <span class="evidence-id">${id}</span>
-      <strong>${claim}</strong>
-      <small>${kernel} / ${value}</small>
+      <span class="evidence-id">${escapeHtml(id)}</span>
+      <strong>${escapeHtml(claim)}</strong>
+      <small>${escapeHtml(kernel)} / ${escapeHtml(value)}</small>
     </div>`).join("");
 }
 
 function renderTable(data) {
-  $("#result-table thead").innerHTML = `<tr>${data.table.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
-  $("#result-table tbody").innerHTML = data.table.rows.map((row) => `<tr>${row.map((value) => `<td>${value}</td>`).join("")}</tr>`).join("");
+  $("#result-table thead").innerHTML = `<tr>${data.table.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`;
+  $("#result-table tbody").innerHTML = data.table.rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
   $("#table-status").textContent = `${data.table.rows.length} 行聚合预览`;
 }
 
@@ -109,13 +118,57 @@ function renderDemo(view = state.view) {
   renderEvidence(data);
   renderTable(data);
   $("#data-source").textContent = `${demo.source} / ${demo.updated}`;
+  $("#execution-panel").hidden = true;
+  $("#error-panel").hidden = true;
+  $("#download-snapshot").childNodes[0].nodeValue = "下载快照 ";
   state.result = data;
+}
+
+function renderExecution(result) {
+  const panel = $("#execution-panel");
+  if (!result.safe_sql) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  $("#sql-details").open = false;
+  $("#safe-sql").textContent = result.safe_sql || "";
+  $("#original-sql").textContent = result.sql || result.safe_sql || "";
+  const planner = result.metadata?.planner || result.metadata?.engine || "controlled";
+  $("#planner-label").textContent = `${planner} / ${result.metadata?.llm_provider || "deterministic"}`;
+  const modifications = result.safety?.modifications || [];
+  $("#safety-list").innerHTML = (modifications.length ? modifications : ["SQL 未发生改写"])
+    .map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  $("#trace-list").innerHTML = (result.trace || []).map((step) => `
+    <li><b>${escapeHtml(step.agent || step.node)}</b> · ${escapeHtml(step.status)}<br><span>${escapeHtml(step.detail || step.error || "")}</span></li>`
+  ).join("");
+}
+
+function renderErrorState(message) {
+  $("#error-panel").hidden = false;
+  $("#error-message").textContent = message;
+  $("#execution-panel").hidden = true;
+  $("#page-title").textContent = "分析未完成";
+  $("#page-description").textContent = "系统已停止交付，原因如下。请调整问题后重新运行。";
+  $(".command-copy .eyebrow").textContent = "AUTONOMOUS / BLOCKED";
+  $("#metric-grid").innerHTML = `
+    <div class="metric"><div class="metric-value">STOP</div><div class="metric-label">质量门已阻止</div><div class="metric-note">未返回未经验证的结论</div></div>
+    <div class="metric"><div class="metric-value">0</div><div class="metric-label">交付结论</div><div class="metric-note">等待有效查询</div></div>
+    <div class="metric"><div class="metric-value">SAFE</div><div class="metric-label">数据状态</div><div class="metric-note">数据库未被修改</div></div>`;
+  renderFindings({ findings: [], actions: [] });
+  renderEvidence({ evidence: [] });
+  renderTable({ table: { columns: ["状态"], rows: [["本次分析失败，未产生结果"]] } });
+  $("#chart-title").textContent = "无可交付图表";
+  $("#chart-unit").textContent = "";
+  $("#chart").innerHTML = `<div class="chart-empty">安全或执行检查未通过。</div>`;
 }
 
 function renderApiResult(result) {
   // API 结果保持与静态快照相同的视觉契约；无法识别的列只进入明细表。
   $("#page-title").textContent = result.title;
   $("#page-description").textContent = "最新查询结果已从 ChainLens 确定性分析引擎返回。";
+  $(".command-copy .eyebrow").textContent = result.intent === "autonomous" ? "AUTONOMOUS / SAFE SQL" : "EXPERT KERNEL / VERIFIED";
+  $("#error-panel").hidden = true;
   renderFindings({
     findings: result.findings.map((item) => ({ title: "可核验结论", body: item.text, evidence: item.evidence_id })),
     actions: result.actions
@@ -132,7 +185,9 @@ function renderApiResult(result) {
     <div class="metric"><div class="metric-value">${result.evidence.length}</div><div class="metric-label">证据记录</div><div class="metric-note">Evidence Ledger</div></div>
     <div class="metric"><div class="metric-value">LIVE</div><div class="metric-label">数据状态</div><div class="metric-note">确定性计算引擎</div></div>`;
   renderApiChart(result);
+  renderExecution(result);
   $("#data-source").textContent = "znjz / Railway 实时确定性分析引擎";
+  $("#download-snapshot").childNodes[0].nodeValue = result.report_markdown ? "下载报告 " : "下载快照 ";
   state.result = result;
 }
 
@@ -142,8 +197,9 @@ async function queryApi(question) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question })
   });
-  if (!response.ok) throw new Error(`API ${response.status}`);
-  return response.json();
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || `API ${response.status}`);
+  return payload;
 }
 
 $$(".nav-item").forEach((button) => button.addEventListener("click", () => renderDemo(button.dataset.view)));
@@ -155,6 +211,7 @@ $("#query-form").addEventListener("submit", async (event) => {
   const button = event.submitter;
   button.disabled = true;
   button.classList.add("is-loading");
+  $("#run-label").textContent = "分析中";
   try {
     if (apiUrl) {
       renderApiResult(await queryApi(question));
@@ -164,20 +221,23 @@ $("#query-form").addEventListener("submit", async (event) => {
       showToast("当前为聚合快照；配置 API 地址后可查询实时数据");
     }
   } catch (error) {
-    showToast("实时接口暂不可用，已保留当前快照");
-    console.error(error);
+    renderErrorState(error.message || "实时分析失败");
+    showToast("分析未完成，已显示具体原因");
   } finally {
     button.disabled = false;
     button.classList.remove("is-loading");
+    $("#run-label").textContent = "运行分析";
   }
 });
 
 $("#download-snapshot").addEventListener("click", () => {
   const data = state.result || demo.scenarios[state.view];
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const isReport = Boolean(data.report_markdown);
+  const content = isReport ? data.report_markdown : JSON.stringify(data, null, 2);
+  const blob = new Blob([content], { type: isReport ? "text/markdown;charset=utf-8" : "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `chainlens-${state.view}-snapshot.json`;
+  link.download = isReport ? `chainlens-${data.intent || state.view}-report.md` : `chainlens-${state.view}-snapshot.json`;
   link.click();
   URL.revokeObjectURL(link.href);
 });

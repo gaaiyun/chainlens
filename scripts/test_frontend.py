@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -26,6 +25,7 @@ def main() -> int:
                 content_type="application/json",
                 body=json.dumps(
                     {
+                    "intent": "autonomous",
                     "title": "实时融资可见性分析",
                     "findings": [
                         {
@@ -57,6 +57,18 @@ def main() -> int:
                             "y": "融资覆盖率%",
                         }
                     ],
+                    "sql": "SELECT grade, enterprise_count FROM financing_gap",
+                    "safe_sql": "SELECT grade, enterprise_count FROM financing_gap LIMIT 500",
+                    "safety": {
+                        "is_safe": True,
+                        "errors": [],
+                        "modifications": ["自动添加 LIMIT 500"],
+                    },
+                    "trace": [
+                        {"agent": "SQLGenerationAgent", "status": "passed", "detail": "生成 SQL"},
+                        {"agent": "SQLSafetyAgent", "status": "passed", "detail": "安全校验通过"},
+                    ],
+                    "report_markdown": "# 实时融资可见性分析\n\n确定性报告正文。",
                     },
                     ensure_ascii=False,
                 ),
@@ -78,12 +90,17 @@ def main() -> int:
         assert desktop.locator("#page-title").inner_text() == "实时融资可见性分析"
         assert desktop.locator("#chart-title").inner_text() == "不同信用等级的公开融资覆盖率"
         assert desktop.locator("#chart .bar-item").count() == 2
+        assert desktop.locator("#execution-panel").is_visible()
+        desktop.locator("#sql-details summary").click()
+        assert "LIMIT 500" in desktop.locator("#safe-sql").inner_text()
+        assert desktop.locator("#trace-list li").count() == 2
         desktop.screenshot(path=str(OUTPUT / "desktop-live.png"), full_page=True)
 
         with desktop.expect_download() as download_info:
             desktop.locator("#download-snapshot").click()
         download = download_info.value
-        download.save_as(str(OUTPUT / "qualification-snapshot.json"))
+        assert download.suggested_filename.endswith(".md")
+        download.save_as(str(OUTPUT / "autonomous-report.md"))
 
         mobile = browser.new_page(viewport={"width": 390, "height": 844})
         mobile.route(
@@ -94,6 +111,7 @@ def main() -> int:
                 body=json.dumps(
                     {
                         "title": "智能制造区域产业健康分析",
+                        "intent": "autonomous",
                         "findings": [
                             {"text": "区域健康指数已计算。", "evidence_id": "E-REGION-1"}
                         ],
@@ -125,6 +143,11 @@ def main() -> int:
                                 "y": "产业健康指数",
                             }
                         ],
+                        "sql": "SELECT 区县, 产业健康指数 FROM district_health",
+                        "safe_sql": "SELECT 区县, 产业健康指数 FROM district_health LIMIT 500",
+                        "safety": {"is_safe": True, "errors": [], "modifications": ["自动添加 LIMIT 500"]},
+                        "trace": [{"agent": "SQLSafetyAgent", "status": "passed", "detail": "安全校验通过"}],
+                        "report_markdown": "# 智能制造区域产业健康分析",
                     },
                     ensure_ascii=False,
                 ),
@@ -144,6 +167,30 @@ def main() -> int:
             for label in mobile.locator("#chart .bar-label").all_inner_texts()
         )
         mobile.screenshot(path=str(OUTPUT / "mobile.png"), full_page=True)
+
+        error_page = browser.new_page(viewport={"width": 1280, "height": 800})
+        error_page.route(
+            "**/api/query",
+            lambda route: route.fulfill(
+                status=422,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "error": "SQL 安全校验连续失败",
+                        "error_type": "autonomous_analysis_failed",
+                        "trace": [],
+                    },
+                    ensure_ascii=False,
+                ),
+            ),
+        )
+        error_page.goto(f"http://127.0.0.1:{PORT}", wait_until="networkidle")
+        error_page.fill("#question", "危险问题")
+        error_page.locator("#query-form button[type=submit]").click()
+        error_page.wait_for_function(
+            "!document.querySelector('#error-panel').hidden"
+        )
+        assert "SQL 安全校验连续失败" in error_page.locator("#error-message").inner_text()
         browser.close()
     print(f"[OK] frontend smoke passed: {OUTPUT}")
     return 0

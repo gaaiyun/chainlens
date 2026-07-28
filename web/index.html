@@ -25,7 +25,7 @@
       <div class="rail-bottom">
         <span class="status-dot"></span>
         <span>数据引擎在线</span>
-        <small>DuckDB / deterministic</small>
+        <small>MySQL + DuckDB / agent</small>
       </div>
     </aside>
 
@@ -43,9 +43,14 @@
         </div>
         <form id="query-form" class="query-box">
           <span class="query-prefix">问</span>
-          <input id="question" type="text" value="请找出有真实中标能力但没有融资记录的智能制造企业" aria-label="输入产业分析问题">
-          <button type="submit" class="run-button"><span>运行分析</span><b>↗</b></button>
+          <input id="question" type="text" value="统计企业经营状态分布" aria-label="输入产业分析问题">
+          <button type="submit" class="run-button"><span id="run-label">运行分析</span><b>↗</b></button>
         </form>
+      </section>
+
+      <section id="error-panel" class="error-band" hidden aria-live="assertive">
+        <div><p class="eyebrow">ANALYSIS / BLOCKED</p><h2>本次分析未完成</h2></div>
+        <p id="error-message"></p>
       </section>
 
       <section class="metric-grid" id="metric-grid" aria-label="关键指标"></section>
@@ -81,6 +86,29 @@
           <div id="evidence-list" class="evidence-list"></div>
           <div class="quality-stamp"><span>VERIFIED</span><small>结论来自确定性计算<br>不使用 LLM 猜测数字</small></div>
         </aside>
+      </section>
+
+      <section id="execution-panel" class="execution-band" hidden>
+        <details id="sql-details">
+          <summary>
+            <span><b>SQL / TRACE</b> 查看查询与安全校验</span>
+            <small id="planner-label">受控自主分析</small>
+          </summary>
+          <div class="execution-grid">
+            <div class="sql-block">
+              <span class="mini-label">SAFE SQL / 实际执行</span>
+              <pre id="safe-sql"></pre>
+              <span class="mini-label">ORIGINAL SQL / 原始计划</span>
+              <pre id="original-sql"></pre>
+            </div>
+            <div class="trace-block">
+              <span class="mini-label">SAFETY / 安全修改</span>
+              <ul id="safety-list"></ul>
+              <span class="mini-label">AGENT TRACE / 执行节点</span>
+              <ol id="trace-list"></ol>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="panel table-panel">
