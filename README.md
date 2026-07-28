@@ -58,6 +58,8 @@ streamlit run app\streamlit_app.py
 ```powershell
 python -m pytest -q
 python scripts\check_security.py
+python scripts\run_public_acceptance.py --include-long-tail
+python scripts\test_public_frontend.py
 ```
 
 当前验收包含四个真实内核和 Agent 交付链路。没有证据、没有数据或包含敏感配置的结果不会被当成合格报告。

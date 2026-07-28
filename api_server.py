@@ -25,7 +25,7 @@ from chainlens.agents import ChainLensOrchestrator  # noqa: E402
 from chainlens.agents.autonomous import AutonomousAnalysisError  # noqa: E402
 from chainlens.agents.llm import LLMConfigurationError  # noqa: E402
 
-logger = logging.getLogger("chainlens.api")
+logger = logging.getLogger("uvicorn.error")
 _runtime_lock = threading.Lock()
 orchestrator: ChainLensOrchestrator | Any | None = None
 initialization_status = "pending"

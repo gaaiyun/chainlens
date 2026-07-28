@@ -2,6 +2,9 @@
 
 > 按任务顺序实施；每项先写失败测试，再写最小实现，并在提交前完成对应验证。
 
+> 状态：已于 2026-07-28 实施并完成本地 DuckDB、真实 MySQL、Railway 公网 API
+> 和 GitHub Pages 桌面/手机验收。下方清单保留为实现过程记录。
+
 **Goal:** 为 ChainLens 增加可交付的受控自主分析，让任意合规产业问题生成安全 SQL、真实结果、确定性结论、图表、证据和报告。
 
 **Architecture:** 保留四个专家内核，并把其他问题路由到 LangGraph 自主分析图。LLM 只生成 SQL 计划；Warehouse 安全门执行白名单只读查询，Profiler 从结果确定性生成统一 `AnalysisResult`。

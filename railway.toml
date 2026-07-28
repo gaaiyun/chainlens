@@ -1,5 +1,12 @@
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
+watchPatterns = [
+  "/api_server.py",
+  "/pyproject.toml",
+  "/railway.toml",
+  "/requirements.txt",
+  "/src/**"
+]
 
 [deploy]
 startCommand = "uvicorn api_server:app --host 0.0.0.0 --port $PORT"

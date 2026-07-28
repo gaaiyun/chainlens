@@ -338,3 +338,28 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - 使用 Railway 真实变量的额外初始化测试在 240 秒超时，说明当时 MySQL 链路
   存在明显波动。没有因此删减字段或放宽 readiness；下一步重新部署并观察
   900 秒内逐表进度。
+
+### 2026-07-28 · 自主分析公网验收通过
+
+- 修复后的 Railway deployment
+  `630bcb3b-bf6b-4bb1-b7d8-3ac49f886680` 状态 `SUCCESS`，commit `901ba93`。
+  `/health` 和 `/ready` 均返回 `status=ready`、`database=mysql`、
+  `engine=controlled-agent-runtime`。
+- GitHub Pages workflow `30359516030` 成功，commit `901ba93`。
+- 新增 `scripts/run_public_acceptance.py`，对生产 API 保存完整响应和 Markdown
+  报告。公网 11/11 通过：
+  - 十个确定性模板问题均约 0.8–1.2 秒；
+  - 长尾“按企业经济类型统计企业数量”真实使用 LLM，7.01 秒返回 40 行；
+  - 全部响应均有 safe SQL、安全报告、非空结果、结论、图表、证据、trace
+    和 Markdown 报告。
+- 公网 API 产物：`data/outputs/public_autonomous_acceptance_20260728`。
+- 新增 `scripts/test_public_frontend.py`，真实验证 GitHub Pages -> Railway CORS
+  链路。桌面注册资本区间和 390px 手机经济类型查询均通过；SQL 可展开、报告
+  可下载、图表/表格/证据非空、浏览器控制台无错误。
+- 公网截图和下载报告：`data/outputs/public_frontend_20260728`。
+- 截图复核后继续完善表达：常用字段映射为业务中文；折线趋势改为报告首期、
+  末期和确定性差值，不再只报告最高点。对应新增单元测试。
+- `railway.toml` 增加后端 `watchPatterns`。后续只改 `README.md`、`docs/` 或
+  `web/` 不再触发 Railway 数据重载。
+- 最终本地质量门：`42 passed in 26.30s`；安全扫描、编译、diff check、
+  本次文件 Ruff 和本地 Playwright 均退出 0。

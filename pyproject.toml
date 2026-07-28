@@ -17,6 +17,7 @@ dependencies = [
     "pandas>=2.2",
     "pyarrow>=15",
     "reportlab>=4.0",
+    "requests>=2.31",
     "sqlparse>=0.5",
     "xlrd>=2.0",
 ]

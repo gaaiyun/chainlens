@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 from typing import Protocol
 
-logger = logging.getLogger("chainlens.warehouse.mysql")
+logger = logging.getLogger("uvicorn.error")
 
 
 class SQLConnection(Protocol):

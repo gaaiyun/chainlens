@@ -65,7 +65,14 @@ v_qualification   14,486
 
 ```toml
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
+watchPatterns = [
+  "/api_server.py",
+  "/pyproject.toml",
+  "/railway.toml",
+  "/requirements.txt",
+  "/src/**"
+]
 
 [deploy]
 startCommand = "uvicorn api_server:app --host 0.0.0.0 --port $PORT"
@@ -74,6 +81,9 @@ healthcheckTimeout = 900
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
+
+`watchPatterns` 只让 API 运行文件和依赖变化触发 Railway 部署。单独修改
+`README.md`、`docs/` 或 GitHub Pages 的 `web/` 时不会重新加载远程 MySQL。
 
 5. 在服务的 `Variables` 中配置：
 
