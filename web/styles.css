@@ -67,12 +67,20 @@ h1, h2, p { margin-top: 0; }
 h1 { max-width: 680px; margin-bottom: 15px; font: 600 clamp(29px, 3vw, 51px)/1.15 "Noto Serif SC", serif; letter-spacing: 0; }
 .command-copy > p:last-child { max-width: 560px; margin-bottom: 0; color: var(--muted); line-height: 1.8; }
 .query-box { display: flex; align-items: center; min-height: 54px; padding: 6px; background: var(--panel); border: 1px solid #c9cbc4; box-shadow: var(--shadow); }
+.query-workbench { min-width: 0; }
 .query-prefix { width: 38px; display: grid; place-items: center; color: var(--orange); font: 500 14px "Noto Serif SC", serif; }
 .query-box input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 13px; }
 .query-box input::placeholder { color: #98a09d; }
 .run-button { display: inline-flex; align-items: center; gap: 12px; padding: 13px 16px; border: 0; color: white; background: var(--ink); font-size: 12px; }
 .run-button b { color: var(--yellow); font-size: 17px; line-height: 1; }
 .run-button:hover { background: var(--teal); }
+.query-examples { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 9px; }
+.query-examples button {
+  padding: 6px 8px; border: 0; border-bottom: 1px solid #bfc4c0; color: var(--muted);
+  background: transparent; font-size: 10px; text-align: left;
+}
+.query-examples button:hover { color: var(--teal); border-color: var(--teal); }
+.ghost-button:disabled { cursor: default; opacity: .45; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); }
 .metric { min-height: 122px; display: flex; flex-direction: column; justify-content: center; padding: 16px 22px; border-right: 1px solid var(--line); }
 .metric:last-child { border-right: 0; }
@@ -161,7 +169,7 @@ tr:hover td { background: #f8f5e9; }
   .app-shell { display: block; }
   .rail { position: static; height: auto; padding: 17px 16px; }
   .rail-rule, .rail-bottom { display: none; }
-  .primary-nav { grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 16px; }
+  .primary-nav { grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 16px; }
   .nav-item { display: block; padding: 9px 4px; text-align: center; }
   .nav-item span, .nav-item strong { display: block; }
   .nav-item strong { margin-top: 5px; font-size: 10px; }
@@ -171,6 +179,8 @@ tr:hover td { background: #f8f5e9; }
   .command-strip { padding: 37px 0 25px; }
   h1 { font-size: 31px; }
   .query-box { min-height: 52px; }
+  .query-examples { gap: 3px; }
+  .query-examples button { flex: 1 1 30%; padding: 6px 3px; text-align: center; }
   .run-button span { display: none; }
   .metric-grid { grid-template-columns: 1fr; }
   .metric { min-height: 90px; border-right: 0; border-bottom: 1px solid var(--line); }

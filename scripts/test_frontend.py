@@ -76,7 +76,11 @@ def main() -> int:
         )
         desktop.goto(f"http://127.0.0.1:{PORT}", wait_until="networkidle")
         assert desktop.title() == "ChainLens / 链见"
-        assert desktop.locator("h1").inner_text().startswith("把经营痕迹")
+        assert desktop.locator("#ask-nav").get_attribute("class").find("is-active") >= 0
+        assert desktop.locator("h1").inner_text() == "智能制造产业自由问数"
+        assert desktop.locator(".query-examples button").count() == 3
+        desktop.locator(".query-examples button").first.click()
+        assert "经济类型" in desktop.locator("#question").input_value()
         desktop.screenshot(path=str(OUTPUT / "desktop.png"), full_page=True)
 
         desktop.locator('[data-view="qualification"]').click()

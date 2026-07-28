@@ -136,7 +136,48 @@ function renderDemo(view = state.view) {
   $("#execution-panel").hidden = true;
   $("#error-panel").hidden = true;
   $("#download-snapshot").childNodes[0].nodeValue = "下载快照 ";
+  $("#download-snapshot").disabled = false;
   state.result = data;
+}
+
+function renderAskHome() {
+  state.view = "ask";
+  state.result = null;
+  $$(".nav-item").forEach((item) => item.classList.remove("is-active"));
+  $("#ask-nav").classList.add("is-active");
+  $("#page-title").textContent = "智能制造产业自由问数";
+  $("#page-description").textContent = "直接查询企业、融资、招投标、对外投资与资质数据。";
+  $(".command-copy .eyebrow").textContent = "AUTONOMOUS / ASK DATA";
+  $("#error-panel").hidden = true;
+  $("#execution-panel").hidden = true;
+  $("#metric-grid").innerHTML = `
+    <div class="metric"><div class="metric-value">5</div><div class="metric-label">分析视图</div><div class="metric-note">企业 / 招投标 / 融资 / 投资 / 资质</div></div>
+    <div class="metric"><div class="metric-value">SQL</div><div class="metric-label">只读查询</div><div class="metric-note">白名单与行数上限</div></div>
+    <div class="metric"><div class="metric-value">WAIT</div><div class="metric-label">等待提问</div><div class="metric-note">结果来自数据库执行</div></div>`;
+  renderFindings({
+    findings: [{
+      title: "受控自由问数",
+      body: "问题会被转换为只读 SQL，执行结果进入证据链后再形成结论。",
+      evidence: "SAFE SQL GATE",
+    }],
+    actions: ["输入问题，或选择输入框下方的复合问题。"],
+  });
+  renderEvidence({
+    evidence: [
+      ["VIEW-01", "v_enterprise", "企业基本信息与行业", "17,576 家"],
+      ["VIEW-02", "v_bidding", "企业招投标记录", "576,690 条"],
+      ["VIEW-03", "v_financing", "公开融资事件", "267 条"],
+      ["VIEW-04", "v_equity", "企业对外投资", "6,757 条"],
+      ["VIEW-05", "v_qualification", "商标与资质", "14,486 条"],
+    ],
+  });
+  $("#chart-title").textContent = "查询结果图表";
+  $("#chart-unit").textContent = "";
+  $("#chart").innerHTML = `<div class="chart-empty">提交问题后生成与结果字段匹配的图表。</div>`;
+  renderTable({ table: { columns: ["状态"], rows: [["等待自由问数查询"]] } });
+  $("#data-source").textContent = "znjz / Railway 实时分析引擎";
+  $("#download-snapshot").childNodes[0].nodeValue = "等待报告 ";
+  $("#download-snapshot").disabled = true;
 }
 
 function renderExecution(result) {
@@ -203,6 +244,7 @@ function renderApiResult(result) {
   renderExecution(result);
   $("#data-source").textContent = "znjz / Railway 实时确定性分析引擎";
   $("#download-snapshot").childNodes[0].nodeValue = result.report_markdown ? "下载报告 " : "下载快照 ";
+  $("#download-snapshot").disabled = false;
   state.result = result;
 }
 
@@ -217,7 +259,15 @@ async function queryApi(question) {
   return payload;
 }
 
-$$(".nav-item").forEach((button) => button.addEventListener("click", () => renderDemo(button.dataset.view)));
+$$(".nav-item[data-view]").forEach((button) => button.addEventListener("click", () => renderDemo(button.dataset.view)));
+$("#ask-nav").addEventListener("click", () => {
+  renderAskHome();
+  $("#question").focus();
+});
+$$('.query-examples button').forEach((button) => button.addEventListener("click", () => {
+  $("#question").value = button.dataset.question;
+  $("#question").focus();
+}));
 
 $("#query-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -229,6 +279,8 @@ $("#query-form").addEventListener("submit", async (event) => {
   $("#run-label").textContent = "分析中";
   try {
     if (apiUrl) {
+      $$(".nav-item").forEach((item) => item.classList.remove("is-active"));
+      $("#ask-nav").classList.add("is-active");
       renderApiResult(await queryApi(question));
       showToast("已接入实时分析引擎");
     } else {
@@ -247,6 +299,7 @@ $("#query-form").addEventListener("submit", async (event) => {
 
 $("#download-snapshot").addEventListener("click", () => {
   const data = state.result || demo.scenarios[state.view];
+  if (!data) return showToast("请先运行一次分析");
   const isReport = Boolean(data.report_markdown);
   const content = isReport ? data.report_markdown : JSON.stringify(data, null, 2);
   const blob = new Blob([content], { type: isReport ? "text/markdown;charset=utf-8" : "application/json" });
@@ -257,4 +310,4 @@ $("#download-snapshot").addEventListener("click", () => {
   URL.revokeObjectURL(link.href);
 });
 
-renderDemo();
+renderAskHome();

@@ -17,7 +17,8 @@
       </div>
       <div class="rail-rule"></div>
       <nav class="primary-nav" aria-label="分析场景">
-        <button class="nav-item is-active" data-view="financing"><span>01</span><strong>融资可见性</strong></button>
+        <button class="nav-item is-active" id="ask-nav" type="button"><span>00</span><strong>自由问数</strong></button>
+        <button class="nav-item" data-view="financing"><span>01</span><strong>融资可见性</strong></button>
         <button class="nav-item" data-view="qualification"><span>02</span><strong>资质续期</strong></button>
         <button class="nav-item" data-view="network"><span>03</span><strong>产业网络</strong></button>
         <button class="nav-item" data-view="region"><span>04</span><strong>区域体检</strong></button>
@@ -37,15 +38,22 @@
 
       <section class="command-strip">
         <div class="command-copy">
-          <p class="eyebrow">INDUSTRIAL INTELLIGENCE / 04 SCENARIOS</p>
-          <h1 id="page-title">把经营痕迹，变成可核验的增信线索。</h1>
-          <p id="page-description">从中标、资质、经营年限和产业关联中，识别公开融资数据里尚未被看见的企业。</p>
+          <p class="eyebrow">AUTONOMOUS / ASK DATA</p>
+          <h1 id="page-title">智能制造产业自由问数</h1>
+          <p id="page-description">直接查询企业、融资、招投标、对外投资与资质数据。</p>
         </div>
-        <form id="query-form" class="query-box">
-          <span class="query-prefix">问</span>
-          <input id="question" type="text" value="统计企业经营状态分布" aria-label="输入产业分析问题">
-          <button type="submit" class="run-button"><span id="run-label">运行分析</span><b>↗</b></button>
-        </form>
+        <div class="query-workbench">
+          <form id="query-form" class="query-box">
+            <span class="query-prefix">问</span>
+            <input id="question" type="text" placeholder="输入一个产业数据问题" aria-label="输入产业分析问题">
+            <button type="submit" class="run-button"><span id="run-label">运行分析</span><b>↗</b></button>
+          </form>
+          <div class="query-examples" aria-label="示例问题">
+            <button type="button" data-question="统计不同经济类型企业的平均注册资本和企业数量，按企业数量降序">经济类型与资本</button>
+            <button type="button" data-question="找出成立超过20年且有融资记录的企业，按融资次数排序前20名">老牌融资企业</button>
+            <button type="button" data-question="统计各成立年份的企业数量，以及其中有招投标记录的企业数量">成立与招投标</button>
+          </div>
+        </div>
       </section>
 
       <section id="error-panel" class="error-band" hidden aria-live="assertive">

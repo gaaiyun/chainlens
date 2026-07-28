@@ -62,6 +62,11 @@ def main() -> int:
         desktop = browser.new_page(viewport={"width": 1440, "height": 1000})
         desktop_errors = collect_browser_errors(desktop)
         desktop.goto(args.url, wait_until="networkidle")
+        assert desktop.locator("#page-title").inner_text() == "智能制造产业自由问数"
+        assert desktop.locator("#ask-nav").get_attribute("class").find("is-active") >= 0
+        assert desktop.locator(".query-examples button").count() == 3
+        desktop.locator(".query-examples button").nth(1).click()
+        assert "融资记录" in desktop.locator("#question").input_value()
         run_query(desktop, "按注册资本区间统计企业数量", "注册资本区间")
         assert desktop.locator("#chart .bar-item").count() == 5
         assert desktop.locator("#result-table tbody tr").count() == 5
