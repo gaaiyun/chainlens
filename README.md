@@ -104,8 +104,12 @@ flowchart LR
 
 <https://chainlens-production.up.railway.app/>
 
+`GET /health` 用于查看进程和数据初始化状态；`GET /ready` 只有真实 MySQL
+数据完成物化、API 可以查询时才返回 200。部署期间旧实例会继续服务，避免慢速
+数据加载让公网入口直接中断。
+
 API 采用 FastAPI，可部署到 Railway。仓库根目录的 `railway.toml` 已固定启动
-命令和 `/health` 健康检查。部署时通过 Railway Variables 连接已有的只读
+命令和 `/ready` 就绪检查。部署时通过 Railway Variables 连接已有的只读
 `znjz` MySQL，服务启动后会缓存五个分析视图；不需要把被 Git 忽略的
 DuckDB 或 Excel 上传到仓库。
 

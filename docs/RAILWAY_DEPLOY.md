@@ -22,7 +22,7 @@ flowchart LR
     A --> M["只读 znjz MySQL"]
     M --> D["内存 DuckDB\n五个白名单视图"]
     A --> L["火山方舟 / DeepSeek\n只规划长尾 SQL"]
-    A --> H["/health"]
+    A --> H["/health + /ready"]
 ```
 
 GitHub Pages 继续负责前端，Railway 只负责 API。不要在 Railway 的
@@ -69,8 +69,8 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "uvicorn api_server:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
-healthcheckTimeout = 300
+healthcheckPath = "/ready"
+healthcheckTimeout = 900
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
@@ -105,9 +105,11 @@ CHAINLENS_ALLOWED_ORIGINS=https://gaaiyun.github.io,https://app.example.com
 
 ```text
 https://你的-railway-域名/health
+https://你的-railway-域名/ready
 ```
 
-正常时应返回：
+`/health` 始终用于进程存活和初始化状态观察；`/ready` 只有数据加载完成后才
+返回 200。就绪响应为：
 
 ```json
 {"status":"ok","engine":"controlled-agent-runtime","database":"mysql"}
@@ -142,7 +144,8 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 
 - 前端：`https://gaaiyun.github.io/chainlens/`
 - API 入口：`api_server.py`
-- API 健康检查：`GET /health`
+- API 存活检查：`GET /health`
+- API 就绪检查：`GET /ready`
 - API 查询：`POST /api/query`
 - 线上数据源：Railway Variables 指向的只读 `znjz` MySQL
 - 离线数据底座：`data/warehouse/chainlens.duckdb`
@@ -158,9 +161,9 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 
 部署完成后按顺序验证：
 
-1. Railway 部署日志没有启动异常，并且能看到 MySQL 缓存初始化完成。
-2. `/health` 返回 HTTP 200。
-3. `/health` 的 `database` 返回 `mysql`。
+1. Railway 部署日志没有启动异常，并且能看到五个视图逐表物化完成。
+2. `/health` 在初始化期间返回 HTTP 200 和 `status=initializing`。
+3. `/ready` 最终返回 HTTP 200、`status=ready` 和 `database=mysql`。
 4. 前端 Network 请求指向 Railway 域名，而不是空地址。
 5. `POST /api/query` 返回 `sql`、`safe_sql`、`safety`、`findings`、`tables`、
    `charts`、`evidence`、`trace` 和 `report_markdown`。

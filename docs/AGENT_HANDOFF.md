@@ -316,3 +316,25 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - 写入本条时尚未 push 和执行公网最终回归。接手时先看 `git status`、GitHub
   Actions 和 Railway deployment；完成后必须把部署 ID、公网十问和截图结果
   继续追加在本节之后，不另建交接文件。
+
+### 2026-07-28 · Railway 首次自主分析部署失败与就绪检查修复
+
+- `6ba0716` 推送后 GitHub Pages workflow `30358249195` 成功；Railway
+  deployment `197eee96-3ad4-48b9-a9e8-4a176fe021e5` 失败。
+- Railway 构建完全成功，失败点是 300 秒健康检查超时。部署日志只有
+  `Starting Container`，没有 Python 异常；根因是 `api_server.py` 在模块导入
+  阶段同步构造 `ChainLensOrchestrator`，远程 MySQL 物化完成前 Uvicorn 端口
+  无法打开。旧成功实例 `f8bc99f7-5e5b-4216-81d6-757739d75237` 仍在线。
+- 修复为 liveness/readiness 分离：FastAPI lifespan 在工作线程初始化仓库；
+  `/health` 立即返回 `pending/initializing/ready/error`，`/ready` 只有数据完全
+  可查询才返回 200；查询未就绪时返回结构化 503。
+- `railway.toml` 改用 `/ready`，窗口从 300 秒调整为 900 秒。Railway 会让旧
+  实例继续服务，直到新实例真正 ready，避免用“假健康”接管公网流量。
+- `src/chainlens/warehouse/mysql.py` 新增逐个视图的无敏感信息进度日志，便于
+  区分数据库慢、进程崩溃和具体物化阶段。
+- 新增生命周期回归测试，验证慢初始化期间 `/health` 在 0.5 秒内响应；API
+  专项 `11 passed`，MySQL 适配专项 `6 passed`，全量 `41 passed in 25.04s`，
+  安全扫描、编译、diff check 和本次文件 Ruff 均通过。
+- 使用 Railway 真实变量的额外初始化测试在 240 秒超时，说明当时 MySQL 链路
+  存在明显波动。没有因此删减字段或放宽 readiness；下一步重新部署并观察
+  900 秒内逐表进度。

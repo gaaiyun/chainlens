@@ -7,8 +7,11 @@
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass
 from typing import Protocol
+
+logger = logging.getLogger("chainlens.warehouse.mysql")
 
 
 class SQLConnection(Protocol):
@@ -209,3 +212,4 @@ def materialize_analysis_views(connection: SQLConnection) -> None:
         connection.execute(
             f"CREATE OR REPLACE TEMP VIEW {view_name} AS SELECT * FROM {cache_name}"
         )
+        logger.info("Materialized analysis view: %s", view_name)

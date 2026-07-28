@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+from threading import Event
+from time import perf_counter
 
+import pytest
 from fastapi.testclient import TestClient
 
 import api_server
@@ -32,7 +35,17 @@ class FakeLLM:
         )
 
 
-def test_query_api_returns_evidence_and_tables() -> None:
+@pytest.fixture
+def local_runtime(monkeypatch):
+    runtime = ChainLensOrchestrator(Warehouse(), autonomous_llm=FakeLLM())
+    monkeypatch.setattr(api_server, "orchestrator", runtime)
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def test_query_api_returns_evidence_and_tables(local_runtime) -> None:
     client = TestClient(app)
 
     response = client.post(
@@ -48,13 +61,57 @@ def test_query_api_returns_evidence_and_tables() -> None:
     assert "financing_gap" in body["tables"]
 
 
-def test_health_reports_active_database_backend() -> None:
+def test_health_reports_active_database_backend(local_runtime) -> None:
     client = TestClient(app)
 
     response = client.get("/health")
 
     assert response.status_code == 200
+    assert response.json()["status"] == "ready"
     assert response.json()["database"] in {"duckdb", "mysql"}
+
+
+def test_readiness_and_query_report_initializing_state(monkeypatch) -> None:
+    monkeypatch.setattr(api_server, "orchestrator", None)
+    monkeypatch.setattr(api_server, "initialization_status", "initializing")
+    monkeypatch.setattr(api_server, "initialization_error", None)
+    client = TestClient(app)
+
+    health_response = client.get("/health")
+    ready_response = client.get("/ready")
+    query_response = client.post("/api/query", json={"question": "统计经营状态分布"})
+
+    assert health_response.status_code == 200
+    assert health_response.json()["status"] == "initializing"
+    assert ready_response.status_code == 503
+    assert ready_response.json()["error_type"] == "data_initializing"
+    assert query_response.status_code == 503
+    assert query_response.json()["error_type"] == "data_initializing"
+
+
+def test_lifespan_does_not_block_health_while_runtime_initializes(monkeypatch) -> None:
+    started = Event()
+    release = Event()
+
+    def slow_initialization() -> None:
+        started.set()
+        release.wait(timeout=3)
+
+    monkeypatch.setattr(api_server, "orchestrator", None)
+    monkeypatch.setattr(api_server, "initialization_status", "initializing")
+    monkeypatch.setattr(api_server, "initialization_error", None)
+    monkeypatch.setattr(api_server, "initialize_runtime", slow_initialization)
+
+    with TestClient(app) as client:
+        assert started.wait(timeout=1)
+        before = perf_counter()
+        response = client.get("/health")
+        elapsed = perf_counter() - before
+        release.set()
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "initializing"
+    assert elapsed < 0.5
 
 
 def test_query_api_rejects_empty_question() -> None:
