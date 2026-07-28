@@ -19,7 +19,9 @@ Railway 适合承载 ChainLens 的 FastAPI API：
 flowchart LR
     B["浏览器"] --> P["GitHub Pages\n静态前端"]
     P --> A["Railway\nFastAPI API"]
-    A --> D["只读 DuckDB\nchainlens.duckdb"]
+    A --> M["只读 znjz MySQL"]
+    M --> D["内存 DuckDB\n五个白名单视图"]
+    A --> L["火山方舟 / DeepSeek\n只规划长尾 SQL"]
     A --> H["/health"]
 ```
 
@@ -82,6 +84,14 @@ DB_PORT_SCENARIO_1_3=3306
 DB_NAME_SCENARIO_1_3=<数据库名>
 DB_USER_SCENARIO_1_3=<只读用户名>
 DB_PASSWORD_SCENARIO_1_3=<数据库密码>
+LLM_PROVIDER=volcengine_ark
+VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
+VOLCENGINE_ARK_MODEL=glm-5.2
+VOLCENGINE_ARK_API_KEY=<火山方舟 API Key>
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=<备用 DeepSeek API Key>
+LLM_TIMEOUT_SECONDS=90
 ```
 
 如果使用自定义前端域名，把多个来源用英文逗号分隔，例如：
@@ -100,7 +110,7 @@ https://你的-railway-域名/health
 正常时应返回：
 
 ```json
-{"status":"ok","engine":"deterministic-kernels"}
+{"status":"ok","engine":"controlled-agent-runtime","database":"mysql"}
 ```
 
 8. 记录 Railway 域名后，修改本仓库的 `web/config.js`：
@@ -116,8 +126,13 @@ window.CHAINLENS_API_URL = "https://你的-railway-域名";
 
 Railway Variables 只放运行时配置，不写进仓库文件、报告、截图或日志。
 
-当前 API 不需要 LLM Key 才能完成核心分析。若后续加入模型层，模型 Key
-也只通过 Railway Variables 注入，代码中只读取变量名，不出现真实值。
+四个专家内核和十类常见问题不需要 LLM Key。未命中模板的长尾问题需要模型规划 SQL；
+主模型不可用时才调用 DeepSeek。模型 Key 只通过 Railway Variables 注入，代码、
+报告、截图和命令输出中都不出现真实值。推荐用 CLI 的标准输入写入密钥：
+
+```powershell
+$secret | railway variable set VOLCENGINE_ARK_API_KEY --stdin
+```
 
 数据库账号必须是只读账号，且只授予目标数据库和必要视图的权限。不要把
 BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之外的
@@ -136,7 +151,7 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 - Railway 公网域名：`https://chainlens-production.up.railway.app`
 - GitHub Pages：`https://gaaiyun.github.io/chainlens/`
 
-当前部署已完成真实 MySQL 四场景验收。Railway 账户仍处于试用额度，竞赛
+当前部署已完成真实 MySQL 四场景和自主分析十问验收。Railway 账户仍处于试用额度，竞赛
 正式展示前要检查剩余额度或升级套餐，避免服务因额度耗尽暂停。
 
 ## 上线验收
@@ -147,11 +162,12 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 2. `/health` 返回 HTTP 200。
 3. `/health` 的 `database` 返回 `mysql`。
 4. 前端 Network 请求指向 Railway 域名，而不是空地址。
-5. `POST /api/query` 返回 `findings`、`tables`、`evidence` 和
-   `report_markdown`。
-6. 一个融资问题和一个区域问题都能返回非空证据。
+5. `POST /api/query` 返回 `sql`、`safe_sql`、`safety`、`findings`、`tables`、
+   `charts`、`evidence`、`trace` 和 `report_markdown`。
+6. 四个专家问题、十个标准自主问题和一个长尾模型问题都返回非空证据。
 7. 浏览器控制台没有 CORS 错误。
-8. Railway Variables 没有出现在页面、报告或 Git diff。
+8. SQL 详情可展开，报告可下载，失败响应不会保留旧结果。
+9. Railway Variables 没有出现在页面、报告或 Git diff。
 
 ## 常见误区
 
@@ -161,4 +177,4 @@ BT 面板管理员密码、MySQL root 密码或 API Key 作为 GitHub Secret 之
 - 不要把 `allow_origins` 长期保持为 `*` 后再允许写操作；当前 API 是只读
   查询，但生产环境仍应限制到实际前端域名。
 - 不要用“页面能打开”代替“真实查询已通过”；必须同时验证 MySQL
-  连通性、缓存视图、API、CORS 和四类场景。
+  连通性、缓存视图、API、CORS、四个专家场景、十个标准问题和一个长尾问题。

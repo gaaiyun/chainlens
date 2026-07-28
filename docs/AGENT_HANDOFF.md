@@ -274,3 +274,45 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - 运营风险：Railway 当前为试用额度；竞赛正式开放前检查额度。公网 API
   当前是固定四类确定性分析、只读数据和受限 CORS，但还没有用户账号、持久化
   限流和监控告警，若大规模开放需补 API 网关或服务端限流。
+
+### 2026-07-28 · 受控自主分析完成，本地与真实 MySQL 十问通过
+
+- 修复公开输入框“问题变化但返回固定 overview”的根因。专家路由现在只匹配
+  融资盲区、资质续期、产业协作网络和区域体检四类高特异性问题，其余进入
+  `AutonomousAnalysisAgent`。
+- 新增 LangGraph 自主分析状态图：加载 Schema、生成 SQL、安全校验、执行、
+  最多两次修复、结果剖析和报告组装。模型只规划 SQL；结论、图表、证据和
+  报告数字全部消费数据库执行结果。
+- 新增十类已审查 SQL 模板，覆盖经营状态、行业 Top、融资轮次、招投标年度、
+  资质年份、地区分布、成立趋势、投资 Top、注册资本区间和企业详情。标准问题
+  不调用 LLM；长尾问题使用火山方舟，DeepSeek 只作故障切换。
+- 自主 SQL 只允许五个脱敏视图、单条 `SELECT/WITH`、显式字段，统一限制到
+  500 行；危险 SQL 和白名单外对象无法执行。空结果明确说明未命中，不生成
+  延伸结论。
+- API 增加顶层 `sql`、`safe_sql`、`safety` 和结构化错误。缺少长尾问题模型
+  配置返回 `503`；SQL 连续修复失败返回 `422`。
+- GitHub Pages 前端新增可展开的 SQL、安全改写和 Agent trace，实时结果可下载
+  Markdown 报告；错误状态会清空旧结果并说明失败原因。桌面和 390px 手机
+  Playwright 回归均通过。
+- 新增 `scripts/run_autonomous_acceptance.py`，每题保存完整 JSON、Markdown、
+  HTML、PDF 和 PNG。验收产物位于：
+  - 本地 DuckDB：`data/outputs/autonomous_acceptance_20260728_local`
+  - 真实 MySQL：`data/outputs/autonomous_acceptance_20260728_mysql`
+- 真实 MySQL 十问输出：10/10 通过；各题返回行数依次为
+  `10, 10, 18, 25, 20, 10, 46, 10, 5, 1`。
+- Railway 已通过 stdin 配齐 8 个模型变量，真实值未进入仓库或命令输出；数据库
+  5 个变量仍然有效。
+- 本轮提交：
+  - `3e6d9d7 docs(agent): 定义受控自主分析设计`
+  - `4acc6ff feat(agent): 实现受控自主分析运行时`
+  - `4d1bf57 feat(web): 展示自主查询与安全轨迹`
+- 最新本地验证：
+  - `python -m pytest -q` -> `39 passed in 19.76s`；
+  - 专项回归：自主 Agent `13 passed`，API `9 passed`；
+  - `python scripts/check_security.py` -> `[OK] security scan passed`；
+  - `python -m compileall -q app src scripts api_server.py` -> exit 0；
+  - `git diff --check` -> exit 0；
+  - `scripts/test_frontend.py` -> `[OK] frontend smoke passed`。
+- 写入本条时尚未 push 和执行公网最终回归。接手时先看 `git status`、GitHub
+  Actions 和 Railway deployment；完成后必须把部署 ID、公网十问和截图结果
+  继续追加在本节之后，不另建交接文件。

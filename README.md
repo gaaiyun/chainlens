@@ -6,7 +6,7 @@ ChainLens 是一个面向智能制造产业的数据要素应用。它把工商�
 2. 哪些资质正在到期，可能让企业错过投标或政策申报？
 3. 哪些企业、区域和行业是产业协作网络的关键节点，哪里存在“企业多但交易弱”的空转预警？
 
-它不是让大模型凭空写一份行业报告。数字、排名、筛选和指数全部由确定性 SQL/Python 内核计算；Agent 负责路由、组织证据、选择图表和生成可读报告。没有模型 Key 也能运行，所有结论都能回到证据链。
+它不是让大模型凭空写一份行业报告。数字、排名、筛选和指数全部来自安全 SQL 或确定性 Python 内核；模型只为长尾问题规划 SQL，不能直接填写报告数字。常见问题和四个专家场景没有模型 Key 也能运行，所有结论都能回到安全 SQL、结果表和证据链。
 
 ## 为什么有社会价值
 
@@ -22,6 +22,9 @@ Git；本地可以通过 Excel 重建 DuckDB，线上 API 使用只读的 `znjz`
 - 资质悬崖：区分年度制度性到期与多年期真实失效，生成未来 12 个月提醒清单
 - 产业网络：从同一招投标公告重建供需、协作、竞争关系
 - 区域体检：区县产业健康指数、行业空转预警、成立和招投标趋势
+- 自主分析：自然语言问题生成受控只读 SQL，执行后自动形成结论、图表和报告
+- 双路径规划：十类常见问题使用已审查 SQL 模板，长尾问题才调用火山方舟，失败时可切换 DeepSeek
+- SQL 安全门：仅允许五个脱敏视图、单条 `SELECT/WITH`、显式字段和最多 500 行
 - 可审计交付：证据账本、Markdown、HTML、PDF、PNG 图表
 - 离线优先：默认使用本地 DuckDB，不依赖 MySQL 或模型 Key
 
@@ -35,6 +38,14 @@ python scripts\run_pipeline.py
 ```
 
 运行四个标准问题后，报告在 `data\outputs\acceptance_YYYYMMDD\`。每个场景包含 Markdown、HTML、PDF 和图表。
+
+运行自主分析十问验收：
+
+```powershell
+python scripts\run_autonomous_acceptance.py
+```
+
+它会验证经营状态、行业 Top、融资轮次、招投标年度、资质年份、地区分布、成立趋势、对外投资、注册资本区间和企业详情，并保存每题的原始 SQL、安全 SQL、结果、结论、图表、证据、trace、Markdown、HTML 和 PDF。
 
 启动交互页面：
 
@@ -51,21 +62,37 @@ python scripts\check_security.py
 
 当前验收包含四个真实内核和 Agent 交付链路。没有证据、没有数据或包含敏感配置的结果不会被当成合格报告。
 
+## API 使用
+
+```http
+POST /api/query
+Content-Type: application/json
+
+{"question":"按注册资本区间统计企业数量"}
+```
+
+成功响应包含 `sql`、`safe_sql`、`safety`、`tables`、`findings`、`charts`、`evidence`、`trace` 和 `report_markdown`。SQL 连续两次修复失败返回结构化 `422`；长尾问题缺少模型配置返回 `503`，不会用固定报告冒充答案。
+
 ## 架构
 
 ```mermaid
 flowchart LR
-    U["中文业务问题"] --> I["IntentAgent\n规则路由"]
-    I --> K["Deterministic Kernel Agent"]
+    U["中文业务问题"] --> I["精确规则路由"]
+    I -->|"四个高价值场景"| K["确定性专家内核"]
+    I -->|"一般数据问题"| G["LangGraph 自主分析"]
+    G --> T["已审查 SQL 模板"]
+    G --> L["LLM 仅规划长尾 SQL"]
+    T --> S["Safe SQL Gate"]
+    L --> S
+    S --> D["DuckDB 执行五个白名单视图"]
+    D --> P["确定性结果剖析"]
     K --> E["Evidence Ledger"]
-    E --> C["CriticAgent\n证据质量门"]
-    K --> V["ChartAgent\n图表规格"]
-    C --> R["ReportAgent\nMarkdown/HTML/PDF"]
-    D["DuckDB 派生视图"] --> K
-    R --> O["可下载决策简报"]
+    P --> E
+    E --> R["图表与报告"]
+    R --> O["页面 / Markdown / HTML / PDF"]
 ```
 
-详细口径见 [docs/METHODOLOGY.md](docs/METHODOLOGY.md)，竞赛立意见 [docs/COMPETITION_BRIEF.md](docs/COMPETITION_BRIEF.md)，交接入口见 [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md)。
+详细架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，自主分析设计见 [docs/AUTONOMOUS_ANALYSIS_DESIGN.md](docs/AUTONOMOUS_ANALYSIS_DESIGN.md)，指标口径见 [docs/METHODOLOGY.md](docs/METHODOLOGY.md)，竞赛立意见 [docs/COMPETITION_BRIEF.md](docs/COMPETITION_BRIEF.md)，交接入口见 [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md)。
 
 ## 公网部署
 
