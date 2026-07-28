@@ -53,6 +53,21 @@ class AutonomousState(TypedDict, total=False):
 
 _FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.IGNORECASE | re.DOTALL)
 _LIMIT = re.compile(r"\bLIMIT\s+(\d+)\s*$", re.IGNORECASE)
+_COLUMN_LABELS = {
+    "status": "经营状态",
+    "enterprise_count": "企业数量",
+    "industry_code": "行业代码",
+    "round_name": "融资轮次",
+    "financing_events": "融资事件数",
+    "year": "年份",
+    "bidding_records": "招投标记录数",
+    "qualification_records": "资质记录数",
+    "district_code": "地区代码",
+    "investment_count": "对外投资数",
+    "capital_range": "注册资本区间",
+    "econ_kind": "企业经济类型",
+    "name": "企业名称",
+}
 
 
 def parse_sql_plan(text: str) -> SQLPlan:
@@ -119,6 +134,10 @@ def _display_value(value: Any) -> str:
     if isinstance(value, int):
         return f"{value:,}"
     return str(value)
+
+
+def _column_label(column: str) -> str:
+    return _COLUMN_LABELS.get(column, column)
 
 
 class AutonomousAnalysisAgent:
@@ -387,32 +406,67 @@ class AutonomousAnalysisAgent:
             numeric = pd.to_numeric(frame[y], errors="coerce")
             valid = numeric.dropna()
             if not valid.empty:
-                top_index = valid.idxmax()
-                label = frame.loc[top_index, x]
-                value = valid.loc[top_index]
-                top_evidence = ledger.add(
-                    Evidence(
-                        kernel="autonomous.ResultProfiler",
-                        claim=f"{y}最高的{x}",
-                        value=_display_value(value),
-                        unit="",
-                        sql=safe_sql,
-                        row_count=len(frame),
-                        confidence=1.0,
-                        caveats=("最高项仅在当前查询返回结果内比较",),
-                    )
-                )
-                findings.append(
-                    Finding(
-                        text=(
-                            f"在当前结果中，{x}为“{_display_value(label)}”的"
-                            f"{y}最高，为 {_display_value(value)}。"
-                        ),
-                        evidence_id=top_evidence.evidence_id,
-                        caveat="这是描述性排序，不表示因果关系。",
-                    )
-                )
                 kind = chart.get("kind", "bar")
+                x_label = _column_label(x)
+                y_label = _column_label(y)
+                if kind == "line" and len(valid) >= 2:
+                    first_index = valid.index[0]
+                    last_index = valid.index[-1]
+                    first_label = frame.loc[first_index, x]
+                    last_label = frame.loc[last_index, x]
+                    first_value = valid.loc[first_index]
+                    last_value = valid.loc[last_index]
+                    change = last_value - first_value
+                    trend_evidence = ledger.add(
+                        Evidence(
+                            kernel="autonomous.ResultProfiler",
+                            claim=f"{y_label}首末变化",
+                            value=_display_value(change),
+                            unit="",
+                            sql=safe_sql,
+                            row_count=len(frame),
+                            confidence=1.0,
+                            caveats=("按当前查询排序比较首期与末期",),
+                        )
+                    )
+                    findings.append(
+                        Finding(
+                            text=(
+                                f"{x_label}从“{_display_value(first_label)}”到"
+                                f"“{_display_value(last_label)}”，{y_label}从 "
+                                f"{_display_value(first_value)} 变为 {_display_value(last_value)}，"
+                                f"首末变化 {_display_value(change)}。"
+                            ),
+                            evidence_id=trend_evidence.evidence_id,
+                            caveat="首末变化是描述性结果，不表示期间持续增长或因果关系。",
+                        )
+                    )
+                else:
+                    top_index = valid.idxmax()
+                    label = frame.loc[top_index, x]
+                    value = valid.loc[top_index]
+                    top_evidence = ledger.add(
+                        Evidence(
+                            kernel="autonomous.ResultProfiler",
+                            claim=f"{y_label}最高的{x_label}",
+                            value=_display_value(value),
+                            unit="",
+                            sql=safe_sql,
+                            row_count=len(frame),
+                            confidence=1.0,
+                            caveats=("最高项仅在当前查询返回结果内比较",),
+                        )
+                    )
+                    findings.append(
+                        Finding(
+                            text=(
+                                f"在当前结果中，{x_label}为“{_display_value(label)}”的"
+                                f"{y_label}最高，为 {_display_value(value)}。"
+                            ),
+                            evidence_id=top_evidence.evidence_id,
+                            caveat="这是描述性排序，不表示因果关系。",
+                        )
+                    )
                 charts.append(
                     ChartSpec(
                         chart_id="autonomous_primary",

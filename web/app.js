@@ -1,6 +1,21 @@
 const demo = window.CHAINLENS_DEMO;
 const apiUrl = (window.CHAINLENS_API_URL || "").trim().replace(/\/$/, "");
 const state = { view: "financing", result: null };
+const columnLabels = {
+  status: "经营状态",
+  enterprise_count: "企业数量",
+  industry_code: "行业代码",
+  round_name: "融资轮次",
+  financing_events: "融资事件数",
+  year: "年份",
+  bidding_records: "招投标记录数",
+  qualification_records: "资质记录数",
+  district_code: "地区代码",
+  investment_count: "对外投资数",
+  capital_range: "注册资本区间",
+  econ_kind: "企业经济类型",
+  name: "企业名称",
+};
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -63,7 +78,7 @@ function renderEvidence(data) {
 }
 
 function renderTable(data) {
-  $("#result-table thead").innerHTML = `<tr>${data.table.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`;
+  $("#result-table thead").innerHTML = `<tr>${data.table.columns.map((column) => `<th>${escapeHtml(columnLabels[column] || column)}</th>`).join("")}</tr>`;
   $("#result-table tbody").innerHTML = data.table.rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
   $("#table-status").textContent = `${data.table.rows.length} 行聚合预览`;
 }

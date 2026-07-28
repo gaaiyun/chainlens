@@ -179,6 +179,19 @@ def test_autonomous_agent_executes_standard_question_without_llm() -> None:
     assert all(item.is_verifiable for item in result.evidence)
 
 
+def test_time_series_finding_reports_deterministic_first_last_change() -> None:
+    warehouse = Warehouse()
+    try:
+        result = AutonomousAnalysisAgent(warehouse=warehouse, llm=NoCallLLM()).run(
+            "按成立年份统计企业数量趋势"
+        )
+    finally:
+        warehouse.close()
+
+    assert any("首末变化" in finding.text for finding in result.findings)
+    assert any(item.claim == "企业数量首末变化" for item in result.evidence)
+
+
 def test_autonomous_agent_uses_llm_for_unmatched_question() -> None:
     llm = FakeLLM(
         [
