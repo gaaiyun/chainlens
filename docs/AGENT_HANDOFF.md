@@ -363,3 +363,23 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
   `web/` 不再触发 Railway 数据重载。
 - 最终本地质量门：`42 passed in 26.30s`；安全扫描、编译、diff check、
   本次文件 Ruff 和本地 Playwright 均退出 0。
+
+### 2026-07-28 · 最终版本交付状态
+
+- 最终代码 commit：`34919c1`；Railway deployment
+  `7b11edfe-0aba-4772-9142-2a7fee39b6c3` 为 `SUCCESS`，builder 为
+  `RAILPACK`，`/ready`、900 秒窗口和 5 条 `watchPatterns` 均已实际生效。
+- 最终 Railway 日志按顺序显示 `v_enterprise`、`v_bidding`、`v_financing`、
+  `v_equity`、`v_qualification` 物化完成，之后 `/ready` 才从 503 转为 200。
+- 最终 GitHub Pages workflow `30360700284` 成功，head SHA 为 `34919c1`。
+- 最终公网 API 11/11 再次通过：十个模板问题 0.76–1.15 秒；长尾经济类型
+  问题使用火山方舟、无修复、7.10 秒返回 41 行。产物：
+  `data/outputs/public_autonomous_acceptance_20260728_final`。
+- 最终公网桌面/手机 Playwright 再次通过，CORS、SQL 展开、trace、图表、
+  12 行移动端预览和 Markdown 下载均正常，控制台无错误。产物：
+  `data/outputs/public_frontend_20260728_final`。
+- 成立趋势最终线上结论示例：1978 年 1 家到 2026 年 737 家，首末变化 736；
+  文案明确说明这不表示期间持续增长或因果关系。该数字来自最终 safe SQL
+  结果，不来自 LLM。
+- 当前公网入口：`https://gaaiyun.github.io/chainlens/`；API：
+  `https://chainlens-production.up.railway.app`。写入本条时功能已可交付。
