@@ -429,5 +429,8 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - Railway deployment `39a44840-1e34-4155-b1bc-998fae9adc00` 状态 `SUCCESS`。
   公网 `/health`、`/ready`、确定性模板查询均通过；真实长尾跨视图问题返回
   `llm_provider=openai_compatible`、`planner=llm_repair`、安全 SQL 和 10 行结果。
-- 本地质量门为 `45 passed`。迁移备份位于
-  `G:\model-migration-backups\20260812-221456`，不进入仓库。
+- 本地质量门为 `44 passed`。迁移前备份保存在仓库外的受限私有目录，具体路径不写入
+  GitHub 文档。
+- 2026-08-13 收尾时又使用一个未缓存的新问法做公网实测：
+  `llm_used=true`、`llm_provider=openai_compatible`、`planner=llm`，安全校验通过，
+  返回 41 行，耗时 52.15 秒。这证明当时走的是实时模型规划，不是历史缓存命中。
