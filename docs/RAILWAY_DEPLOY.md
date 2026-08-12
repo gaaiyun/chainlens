@@ -94,13 +94,10 @@ DB_PORT_SCENARIO_1_3=3306
 DB_NAME_SCENARIO_1_3=<数据库名>
 DB_USER_SCENARIO_1_3=<只读用户名>
 DB_PASSWORD_SCENARIO_1_3=<数据库密码>
-LLM_PROVIDER=volcengine_ark
-VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
-VOLCENGINE_ARK_MODEL=glm-5.2
-VOLCENGINE_ARK_API_KEY=<火山方舟 API Key>
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
-DEEPSEEK_API_KEY=<备用 DeepSeek API Key>
+LLM_PROVIDER=openai_compatible
+OPENAI_BASE_URL=https://sub.anzhiyu.com/v1
+OPENAI_MODEL=grok-4.5
+OPENAI_API_KEY=<OpenAI-compatible API Key>
 LLM_TIMEOUT_SECONDS=90
 ```
 
@@ -139,11 +136,11 @@ window.CHAINLENS_API_URL = "https://你的-railway-域名";
 Railway Variables 只放运行时配置，不写进仓库文件、报告、截图或日志。
 
 四个专家内核和十类常见问题不需要 LLM Key。未命中模板的长尾问题需要模型规划 SQL；
-主模型不可用时才调用 DeepSeek。模型 Key 只通过 Railway Variables 注入，代码、
+当前生产只使用 OpenAI-compatible 主模型，不自动回退到其它供应商。模型 Key 只通过 Railway Variables 注入，代码、
 报告、截图和命令输出中都不出现真实值。推荐用 CLI 的标准输入写入密钥：
 
 ```powershell
-$secret | railway variable set VOLCENGINE_ARK_API_KEY --stdin
+$secret | railway variable set OPENAI_API_KEY --stdin
 ```
 
 数据库账号必须是只读账号，且只授予目标数据库和必要视图的权限。不要把

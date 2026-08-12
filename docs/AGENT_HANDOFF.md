@@ -418,3 +418,16 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
   浏览器控制台无错误。产物：`data/outputs/public_freeform_frontend_20260729`。
 - 本轮最终本地质量门：`44 passed in 19.13s`；全仓 Ruff、安全扫描、编译、
   diff check 和本地 Playwright 均通过。
+
+### 2026-08-13 · 唯一 LLM 接口迁移
+
+- Railway 生产变量已统一为 `LLM_PROVIDER=openai_compatible`、
+  `OPENAI_BASE_URL=https://sub.anzhiyu.com/v1`、`OPENAI_MODEL=grok-4.5`；
+  key 仅通过 `OPENAI_API_KEY` secret 注入。旧 Volcengine 与 DeepSeek 变量均已删除。
+- 代码不再保留自动供应商回退；OpenAI-compatible 客户端只对瞬时连接错误重试一次，
+  SQL 计划输出上限收紧为 600 tokens，避免短 JSON 请求长时间占用边缘连接。
+- Railway deployment `39a44840-1e34-4155-b1bc-998fae9adc00` 状态 `SUCCESS`。
+  公网 `/health`、`/ready`、确定性模板查询均通过；真实长尾跨视图问题返回
+  `llm_provider=openai_compatible`、`planner=llm_repair`、安全 SQL 和 10 行结果。
+- 本地质量门为 `45 passed`。迁移备份位于
+  `G:\model-migration-backups\20260812-221456`，不进入仓库。

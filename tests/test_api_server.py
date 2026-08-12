@@ -164,7 +164,7 @@ def test_autonomous_api_returns_structured_error(monkeypatch) -> None:
 def test_autonomous_api_returns_503_when_llm_is_not_configured(monkeypatch) -> None:
     class MissingLLMRuntime:
         def run(self, question: str):
-            raise LLMConfigurationError("未配置 VOLCENGINE_ARK_API_KEY")
+            raise LLMConfigurationError("未配置 OPENAI_API_KEY")
 
     monkeypatch.setattr(api_server, "orchestrator", MissingLLMRuntime())
 

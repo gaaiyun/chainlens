@@ -11,7 +11,12 @@ from chainlens.agents.autonomous import (
     enforce_autonomous_sql,
     parse_sql_plan,
 )
-from chainlens.agents.llm import FallbackProvider, LLMConfigurationError, LLMSettings
+from chainlens.agents.llm import (
+    FallbackProvider,
+    LLMConfigurationError,
+    LLMSettings,
+    OpenAICompatibleProvider,
+)
 from chainlens.agents.schema_context import plan_common_question
 from chainlens.warehouse.access import UnsafeQueryError, Warehouse
 
@@ -85,21 +90,53 @@ def test_autonomous_sql_enforces_explicit_top_n_limit() -> None:
     assert report["modifications"] == ["按用户要求添加 LIMIT 20"]
 
 
-def test_llm_settings_read_volcengine_mapping() -> None:
+def test_llm_settings_read_openai_compatible_mapping() -> None:
     settings = LLMSettings.from_mapping(
         {
-            "LLM_PROVIDER": "volcengine_ark",
-            "VOLCENGINE_ARK_BASE_URL": "https://ark.example/v3",
-            "VOLCENGINE_ARK_API_KEY": "test-key",
-            "VOLCENGINE_ARK_MODEL": "glm-test",
+            "LLM_PROVIDER": "openai_compatible",
+            "OPENAI_BASE_URL": "https://relay.example/v1",
+            "OPENAI_API_KEY": "test-key",
+            "OPENAI_MODEL": "grok-4.5",
             "LLM_TIMEOUT_SECONDS": "42",
         }
     )
 
-    assert settings.provider == "volcengine_ark"
-    assert settings.base_url == "https://ark.example/v3"
-    assert settings.model == "glm-test"
+    assert settings.provider == "openai_compatible"
+    assert settings.base_url == "https://relay.example/v1"
+    assert settings.model == "grok-4.5"
     assert settings.timeout_seconds == 42
+
+
+def test_openai_provider_uses_one_retry_and_bounded_sql_output() -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCompletions:
+        def create(self, **kwargs: object):
+            captured.update(kwargs)
+            message = type("Message", (), {"content": "ok"})()
+            choice = type("Choice", (), {"message": message})()
+            return type("Response", (), {"choices": [choice]})()
+
+    class FakeClient:
+        def __init__(self, **kwargs: object) -> None:
+            captured["client"] = kwargs
+            self.chat = type(
+                "Chat", (), {"completions": FakeCompletions()}
+            )()
+
+    provider = OpenAICompatibleProvider(
+        LLMSettings.from_mapping(
+            {
+                "LLM_PROVIDER": "openai_compatible",
+                "OPENAI_API_KEY": "test-key",
+            }
+        ),
+        client_factory=FakeClient,
+    )
+
+    assert provider.complete([{"role": "user", "content": "test"}]) == "ok"
+    assert captured["max_tokens"] == 600
+    assert captured["client"]["max_retries"] == 1
 
 
 def test_fallback_provider_uses_secondary_after_primary_error() -> None:
@@ -114,12 +151,12 @@ def test_fallback_provider_uses_secondary_after_primary_error() -> None:
             return self.response
 
     provider = FallbackProvider(
-        Provider("volcengine"),
-        Provider("deepseek", "fallback-result"),
+        Provider("primary"),
+        Provider("secondary", "fallback-result"),
     )
 
     assert provider.complete([{"role": "user", "content": "test"}]) == "fallback-result"
-    assert provider.last_provider == "deepseek"
+    assert provider.last_provider == "secondary"
 
 
 def test_common_question_planner_covers_standard_questions() -> None:
@@ -311,11 +348,11 @@ def test_autonomous_agent_stops_after_two_unsafe_repairs() -> None:
 def test_autonomous_agent_does_not_repair_missing_llm_configuration() -> None:
     class MissingLLM:
         def complete(self, messages, **_: object) -> str:
-            raise LLMConfigurationError("未配置 VOLCENGINE_ARK_API_KEY")
+            raise LLMConfigurationError("未配置 OPENAI_API_KEY")
 
     warehouse = Warehouse()
     try:
-        with pytest.raises(LLMConfigurationError, match="VOLCENGINE_ARK_API_KEY"):
+        with pytest.raises(LLMConfigurationError, match="OPENAI_API_KEY"):
             AutonomousAnalysisAgent(warehouse=warehouse, llm=MissingLLM()).run(
                 "按企业经济类型分析数量"
             )

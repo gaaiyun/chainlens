@@ -35,8 +35,7 @@ def test_router_sends_general_data_questions_to_autonomous_analysis() -> None:
 
 
 def test_standard_autonomous_question_does_not_require_llm_key(monkeypatch) -> None:
-    monkeypatch.delenv("VOLCENGINE_ARK_API_KEY", raising=False)
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     runtime = ChainLensOrchestrator(Warehouse())
     try:
         result = runtime.run("统计经营状态分布")
